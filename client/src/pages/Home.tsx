@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { CalendarToolbar } from "@/components/CalendarToolbar";
-import { ResourceSidebar } from "@/components/ResourceSidebar";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { EventDialog } from "@/components/EventDialog";
 import { ResourceDialog } from "@/components/ResourceDialog";
@@ -10,7 +9,6 @@ import type { Resource, Event } from "@shared/schema";
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
-  const [selectedResourceId, setSelectedResourceId] = useState<string>();
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event>();
@@ -126,37 +124,31 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <ResourceSidebar
-        resources={resources}
-        selectedResourceId={selectedResourceId}
-        onResourceSelect={setSelectedResourceId}
-        onAddResource={() => setResourceDialogOpen(true)}
-      />
-
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between px-4 py-2 border-b">
-          <div className="flex-1">
-            <CalendarToolbar
-              currentDate={currentDate}
-              viewMode={viewMode}
-              onDateChange={setCurrentDate}
-              onViewModeChange={setViewMode}
-              onCreateEvent={handleCreateEvent}
-            />
-          </div>
+    <div className="flex flex-col h-screen bg-background">
+      <div className="flex items-center justify-between border-b">
+        <div className="flex-1">
+          <CalendarToolbar
+            currentDate={currentDate}
+            viewMode={viewMode}
+            onDateChange={setCurrentDate}
+            onViewModeChange={setViewMode}
+            onCreateEvent={handleCreateEvent}
+            onAddResource={() => setResourceDialogOpen(true)}
+          />
+        </div>
+        <div className="px-4">
           <ThemeToggle />
         </div>
-
-        <CalendarGrid
-          resources={resources}
-          events={events}
-          currentDate={currentDate}
-          viewMode={viewMode}
-          onEventClick={handleEventClick}
-          onCellClick={handleCellClick}
-        />
       </div>
+
+      <CalendarGrid
+        resources={resources}
+        events={events}
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onEventClick={handleEventClick}
+        onCellClick={handleCellClick}
+      />
 
       <EventDialog
         open={eventDialogOpen}

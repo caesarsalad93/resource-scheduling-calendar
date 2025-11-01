@@ -10,6 +10,7 @@ interface CalendarToolbarProps {
   onDateChange: (date: Date) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onCreateEvent: () => void;
+  onAddResource: () => void;
 }
 
 export function CalendarToolbar({
@@ -18,6 +19,7 @@ export function CalendarToolbar({
   onDateChange,
   onViewModeChange,
   onCreateEvent,
+  onAddResource,
 }: CalendarToolbarProps) {
   const goToPrevious = () => {
     if (viewMode === "day") {
@@ -115,6 +117,11 @@ export function CalendarToolbar({
             Month
           </Button>
         </div>
+
+        <Button variant="outline" onClick={onAddResource} data-testid="button-add-resource">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Resource
+        </Button>
 
         <Button onClick={onCreateEvent} data-testid="button-create-event">
           <Plus className="h-4 w-4 mr-2" />

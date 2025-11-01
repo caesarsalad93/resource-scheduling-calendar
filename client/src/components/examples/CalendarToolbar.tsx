@@ -13,6 +13,7 @@ export default function CalendarToolbarExample() {
         onDateChange={setCurrentDate}
         onViewModeChange={setViewMode}
         onCreateEvent={() => console.log("Create event clicked")}
+        onAddResource={() => console.log("Add resource clicked")}
       />
     </div>
   );
