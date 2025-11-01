@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, isSameDay } from "date-fns";
-import { CalendarToolbar } from "@/components/CalendarToolbar";
+import { CalendarToolbar, type SavedView } from "@/components/CalendarToolbar";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { EventDialog } from "@/components/EventDialog";
 import { ResourceDialog } from "@/components/ResourceDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Resource, Event } from "@shared/schema";
 
+const SAVED_VIEWS_KEY = "calendar-saved-views";
+
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string | null>(null);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event>();
@@ -17,6 +21,23 @@ export default function Home() {
     resourceId?: string;
     startTime?: Date;
   }>({});
+
+  // Load saved views from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(SAVED_VIEWS_KEY);
+    if (stored) {
+      try {
+        setSavedViews(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse saved views:", e);
+      }
+    }
+  }, []);
+
+  // Save views to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(savedViews));
+  }, [savedViews]);
 
   const [resources, setResources] = useState<Resource[]>([
     { id: "1", name: "Dr. Sarah Johnson", type: "Doctor", color: "#3b82f6" },
@@ -428,6 +449,34 @@ export default function Home() {
     setResources([...resources, newResource]);
   };
 
+  const handleSaveView = () => {
+    const viewName = prompt("Enter a name for this view:");
+    if (!viewName) return;
+
+    const newView: SavedView = {
+      id: Date.now().toString(),
+      name: viewName,
+      date: format(currentDate, "yyyy-MM-dd"),
+      resourceTypeFilter,
+    };
+
+    setSavedViews([...savedViews, newView]);
+  };
+
+  const handleLoadView = (view: SavedView) => {
+    setCurrentDate(new Date(view.date));
+    setResourceTypeFilter(view.resourceTypeFilter);
+  };
+
+  const handleDeleteView = (viewId: string) => {
+    setSavedViews(savedViews.filter(v => v.id !== viewId));
+  };
+
+  // Filter resources based on type
+  const filteredResources = resourceTypeFilter
+    ? resources.filter(r => r.type === resourceTypeFilter)
+    : resources;
+
   return (
     <div className="flex flex-col h-screen bg-background print-calendar-container">
       {/* Print Header - only visible when printing */}
@@ -444,8 +493,14 @@ export default function Home() {
           <CalendarToolbar
             currentDate={currentDate}
             viewMode={viewMode}
+            resourceTypeFilter={resourceTypeFilter}
+            savedViews={savedViews}
             onDateChange={setCurrentDate}
             onViewModeChange={setViewMode}
+            onResourceTypeFilterChange={setResourceTypeFilter}
+            onSaveView={handleSaveView}
+            onLoadView={handleLoadView}
+            onDeleteView={handleDeleteView}
             onCreateEvent={handleCreateEvent}
             onAddResource={() => setResourceDialogOpen(true)}
           />
@@ -456,7 +511,7 @@ export default function Home() {
       </div>
 
       <CalendarGrid
-        resources={resources}
+        resources={filteredResources}
         events={events}
         currentDate={currentDate}
         viewMode={viewMode}
