@@ -355,3 +355,107 @@
     inset: -1px;
   }
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.5in;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide interactive elements when printing */
+  .no-print,
+  button,
+  [role="button"],
+  .hover-elevate,
+  .active-elevate-2 {
+    display: none !important;
+  }
+
+  /* Remove shadows and transitions for print */
+  * {
+    box-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Optimize calendar grid for printing */
+  .print-calendar-container {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .print-calendar-grid {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Ensure all content is visible */
+  .overflow-auto,
+  .overflow-scroll,
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  /* Remove sticky positioning for print */
+  .sticky {
+    position: static !important;
+  }
+
+  /* Adjust grid for better printing */
+  .print-grid-row {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Make event colors print-friendly */
+  .print-event {
+    border: 1px solid #333 !important;
+    opacity: 1 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* Ensure borders are visible */
+  .border,
+  .border-r,
+  .border-b,
+  .border-l,
+  .border-t {
+    border-color: #666 !important;
+  }
+
+  /* Add print header styling */
+  .print-header {
+    display: block !important;
+    page-break-after: avoid;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Compact spacing for print */
+  .print-compact {
+    padding: 0.25rem !important;
+    font-size: 10pt !important;
+  }
+
+  /* Page break controls */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .avoid-page-break {
+    page-break-inside: avoid;
+  }
+}
