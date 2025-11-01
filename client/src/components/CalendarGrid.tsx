@@ -83,10 +83,10 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto print-calendar-grid">
       <div className="min-w-max">
         <div 
-          className="grid border-b sticky top-0 bg-background z-10"
+          className="grid border-b sticky top-0 bg-background z-10 print:static"
           style={{ 
             gridTemplateColumns: `80px repeat(${resources.length}, minmax(200px, 1fr))` 
           }}
@@ -115,7 +115,7 @@ export function CalendarGrid({
         {hours.map((hour) => (
           <div
             key={hour}
-            className="grid border-b"
+            className="grid border-b print-grid-row"
             style={{ 
               gridTemplateColumns: `80px repeat(${resources.length}, minmax(200px, 1fr))`,
               minHeight: '80px'
@@ -154,7 +154,7 @@ export function CalendarGrid({
                     return (
                       <div
                         key={event.id}
-                        className="absolute rounded px-2 py-1 text-xs cursor-pointer overflow-hidden"
+                        className="absolute rounded px-2 py-1 text-xs cursor-pointer overflow-hidden print-event print:cursor-default avoid-page-break"
                         style={{
                           top: position.top,
                           height: position.height,
@@ -169,10 +169,10 @@ export function CalendarGrid({
                         }}
                         data-testid={`event-${event.id}`}
                       >
-                        <div className="font-medium text-white truncate">
+                        <div className="font-medium text-white truncate print:text-black">
                           {event.title}
                         </div>
-                        <div className="text-white/80 text-[10px]">
+                        <div className="text-white/80 text-[10px] print:text-gray-700">
                           {format(new Date(event.startTime), "h:mm a")}
                         </div>
                       </div>
