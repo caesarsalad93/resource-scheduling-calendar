@@ -28,14 +28,12 @@ export function CalendarGrid({
 
     return events.filter((event) => {
       const eventStart = new Date(event.startTime);
-      const eventEnd = new Date(event.endTime);
       
       return (
         event.resourceId === resourceId &&
         isSameDay(eventStart, currentDate) &&
-        ((eventStart >= slotStart && eventStart < slotEnd) ||
-          (eventEnd > slotStart && eventEnd <= slotEnd) ||
-          (eventStart <= slotStart && eventEnd >= slotEnd))
+        eventStart >= slotStart &&
+        eventStart < slotEnd
       );
     });
   };
@@ -47,12 +45,11 @@ export function CalendarGrid({
     const eventEnd = new Date(event.endTime);
 
     const minutesFromSlotStart = Math.max(0, differenceInMinutes(eventStart, slotStart));
-    const eventDurationMinutes = differenceInMinutes(eventEnd, eventStart);
-    const heightMinutes = Math.min(60 - minutesFromSlotStart, eventDurationMinutes);
+    const totalEventDurationMinutes = differenceInMinutes(eventEnd, eventStart);
 
     return {
       top: `${(minutesFromSlotStart / 60) * 100}%`,
-      height: `${(heightMinutes / 60) * 100}%`,
+      height: `${(totalEventDurationMinutes / 60) * 100}%`,
     };
   };
 
