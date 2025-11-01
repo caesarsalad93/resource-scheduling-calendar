@@ -18,6 +18,7 @@ export const events = pgTable("events", {
   endTime: timestamp("end_time").notNull(),
   description: text("description"),
   color: text("color"),
+  category: text("category"),
 });
 
 export const insertResourceSchema = createInsertSchema(resources).omit({

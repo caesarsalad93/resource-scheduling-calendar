@@ -10,6 +10,16 @@ interface CalendarGridProps {
   onCellClick: (resourceId: string, startTime: Date) => void;
 }
 
+const EVENT_COLORS = {
+  appointment: "#3b82f6",
+  meeting: "#10b981",
+  surgery: "#8b5cf6",
+  maintenance: "#ec4899",
+  break: "#94a3b8",
+  training: "#f59e0b",
+  emergency: "#ef4444",
+};
+
 export function CalendarGrid({
   resources,
   events,
@@ -34,6 +44,25 @@ export function CalendarGrid({
         isSameDay(eventStart, currentDate) &&
         eventStart >= slotStart &&
         eventStart < slotEnd
+      );
+    });
+  };
+
+  const getOverlappingEvents = (resourceId: string, event: Event) => {
+    const eventStart = new Date(event.startTime);
+    const eventEnd = new Date(event.endTime);
+    
+    return events.filter((e) => {
+      if (e.id === event.id || e.resourceId !== resourceId) return false;
+      
+      const eStart = new Date(e.startTime);
+      const eEnd = new Date(e.endTime);
+      
+      return (
+        isSameDay(eStart, currentDate) &&
+        ((eStart >= eventStart && eStart < eventEnd) ||
+          (eEnd > eventStart && eEnd <= eventEnd) ||
+          (eStart <= eventStart && eEnd >= eventEnd))
       );
     });
   };
@@ -109,16 +138,29 @@ export function CalendarGrid({
                   }}
                   data-testid={`cell-${resource.id}-${hour}`}
                 >
-                  {cellEvents.map((event) => {
+                  {cellEvents.map((event, index) => {
                     const position = getEventPosition(event, hour);
+                    const overlapping = getOverlappingEvents(resource.id, event);
+                    const totalOverlapping = overlapping.length + 1;
+                    const eventIndex = overlapping.filter(e => e.id < event.id).length;
+                    
+                    const width = totalOverlapping > 1 ? `${100 / totalOverlapping}%` : 'calc(100% - 8px)';
+                    const left = totalOverlapping > 1 ? `${(eventIndex * 100) / totalOverlapping}%` : '4px';
+                    
+                    const eventColor = event.category && EVENT_COLORS[event.category as keyof typeof EVENT_COLORS]
+                      ? EVENT_COLORS[event.category as keyof typeof EVENT_COLORS]
+                      : event.color || resource.color;
+                    
                     return (
                       <div
                         key={event.id}
-                        className="absolute inset-x-1 rounded px-2 py-1 text-xs cursor-pointer overflow-hidden"
+                        className="absolute rounded px-2 py-1 text-xs cursor-pointer overflow-hidden"
                         style={{
                           top: position.top,
                           height: position.height,
-                          backgroundColor: event.color || resource.color,
+                          left,
+                          width,
+                          backgroundColor: eventColor,
                           opacity: 0.9,
                         }}
                         onClick={(e) => {

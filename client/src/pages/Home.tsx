@@ -26,7 +26,7 @@ export default function Home() {
   ]);
 
   const [events, setEvents] = useState<Event[]>([
-    // Dr. Sarah Johnson - Fully booked day
+    // Dr. Sarah Johnson - Fully booked day with overlapping emergencies
     {
       id: "1",
       title: "Morning Rounds",
@@ -34,7 +34,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(8, 0, 0, 0)),
       endTime: new Date(new Date().setHours(8, 30, 0, 0)),
       description: "Patient rounds",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
     },
     {
       id: "2",
@@ -43,7 +44,18 @@ export default function Home() {
       startTime: new Date(new Date().setHours(9, 0, 0, 0)),
       endTime: new Date(new Date().setHours(10, 0, 0, 0)),
       description: "Annual checkup",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
+    },
+    {
+      id: "2a",
+      title: "Lab Results Review",
+      resourceId: "1",
+      startTime: new Date(new Date().setHours(9, 30, 0, 0)),
+      endTime: new Date(new Date().setHours(9, 45, 0, 0)),
+      description: "Review patient labs",
+      color: null,
+      category: "appointment",
     },
     {
       id: "3",
@@ -52,16 +64,28 @@ export default function Home() {
       startTime: new Date(new Date().setHours(10, 15, 0, 0)),
       endTime: new Date(new Date().setHours(10, 45, 0, 0)),
       description: "Post-op follow-up",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
     },
     {
       id: "4",
-      title: "Emergency Consultation",
+      title: "Emergency Call",
       resourceId: "1",
       startTime: new Date(new Date().setHours(11, 0, 0, 0)),
-      endTime: new Date(new Date().setHours(12, 0, 0, 0)),
-      description: "Urgent case",
-      color: "#3b82f6",
+      endTime: new Date(new Date().setHours(11, 30, 0, 0)),
+      description: "Urgent patient call",
+      color: null,
+      category: "emergency",
+    },
+    {
+      id: "4a",
+      title: "Chart Review",
+      resourceId: "1",
+      startTime: new Date(new Date().setHours(11, 15, 0, 0)),
+      endTime: new Date(new Date().setHours(11, 45, 0, 0)),
+      description: "Review patient charts",
+      color: null,
+      category: "appointment",
     },
     {
       id: "5",
@@ -70,7 +94,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(12, 0, 0, 0)),
       endTime: new Date(new Date().setHours(13, 0, 0, 0)),
       description: "Lunch",
-      color: "#94a3b8",
+      color: null,
+      category: "break",
     },
     {
       id: "6",
@@ -79,7 +104,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(13, 0, 0, 0)),
       endTime: new Date(new Date().setHours(14, 0, 0, 0)),
       description: "Initial consultation",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
     },
     {
       id: "7",
@@ -88,7 +114,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(14, 0, 0, 0)),
       endTime: new Date(new Date().setHours(14, 30, 0, 0)),
       description: "Routine checkup",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
     },
     {
       id: "8",
@@ -97,10 +124,11 @@ export default function Home() {
       startTime: new Date(new Date().setHours(15, 0, 0, 0)),
       endTime: new Date(new Date().setHours(16, 0, 0, 0)),
       description: "Annual physical",
-      color: "#3b82f6",
+      color: null,
+      category: "appointment",
     },
     
-    // Dr. Michael Chen - Surgery focus
+    // Dr. Michael Chen - Surgery focus with overlapping consultations
     {
       id: "9",
       title: "Pre-Op Consultation",
@@ -108,7 +136,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(8, 30, 0, 0)),
       endTime: new Date(new Date().setHours(9, 30, 0, 0)),
       description: "Surgery preparation",
-      color: "#8b5cf6",
+      color: null,
+      category: "appointment",
     },
     {
       id: "10",
@@ -117,7 +146,18 @@ export default function Home() {
       startTime: new Date(new Date().setHours(10, 0, 0, 0)),
       endTime: new Date(new Date().setHours(12, 30, 0, 0)),
       description: "Scheduled procedure",
-      color: "#8b5cf6",
+      color: null,
+      category: "surgery",
+    },
+    {
+      id: "10a",
+      title: "Anesthesia Briefing",
+      resourceId: "2",
+      startTime: new Date(new Date().setHours(10, 0, 0, 0)),
+      endTime: new Date(new Date().setHours(10, 15, 0, 0)),
+      description: "Quick anesthesia review",
+      color: null,
+      category: "meeting",
     },
     {
       id: "11",
@@ -126,7 +166,18 @@ export default function Home() {
       startTime: new Date(new Date().setHours(14, 0, 0, 0)),
       endTime: new Date(new Date().setHours(15, 0, 0, 0)),
       description: "Recovery assessment",
-      color: "#8b5cf6",
+      color: null,
+      category: "appointment",
+    },
+    {
+      id: "11a",
+      title: "Family Consultation",
+      resourceId: "2",
+      startTime: new Date(new Date().setHours(14, 30, 0, 0)),
+      endTime: new Date(new Date().setHours(14, 45, 0, 0)),
+      description: "Speak with family",
+      color: null,
+      category: "appointment",
     },
     {
       id: "12",
@@ -135,10 +186,11 @@ export default function Home() {
       startTime: new Date(new Date().setHours(15, 30, 0, 0)),
       endTime: new Date(new Date().setHours(17, 0, 0, 0)),
       description: "Surgical techniques workshop",
-      color: "#8b5cf6",
+      color: null,
+      category: "training",
     },
     
-    // Conference Room A - Meetings
+    // Conference Room A - Multiple overlapping bookings
     {
       id: "13",
       title: "Department Meeting",
@@ -146,7 +198,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(8, 0, 0, 0)),
       endTime: new Date(new Date().setHours(9, 0, 0, 0)),
       description: "Weekly department sync",
-      color: "#10b981",
+      color: null,
+      category: "meeting",
     },
     {
       id: "14",
@@ -155,7 +208,28 @@ export default function Home() {
       startTime: new Date(new Date().setHours(10, 0, 0, 0)),
       endTime: new Date(new Date().setHours(11, 30, 0, 0)),
       description: "Q4 budget planning",
-      color: "#10b981",
+      color: null,
+      category: "meeting",
+    },
+    {
+      id: "14a",
+      title: "Virtual Call - Team B",
+      resourceId: "3",
+      startTime: new Date(new Date().setHours(10, 30, 0, 0)),
+      endTime: new Date(new Date().setHours(11, 0, 0, 0)),
+      description: "Remote team sync",
+      color: null,
+      category: "meeting",
+    },
+    {
+      id: "14b",
+      title: "Emergency Meeting",
+      resourceId: "3",
+      startTime: new Date(new Date().setHours(10, 45, 0, 0)),
+      endTime: new Date(new Date().setHours(11, 15, 0, 0)),
+      description: "Urgent decision needed",
+      color: null,
+      category: "emergency",
     },
     {
       id: "15",
@@ -164,7 +238,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(13, 0, 0, 0)),
       endTime: new Date(new Date().setHours(14, 0, 0, 0)),
       description: "Candidate interview",
-      color: "#10b981",
+      color: null,
+      category: "meeting",
     },
     {
       id: "16",
@@ -173,7 +248,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(14, 30, 0, 0)),
       endTime: new Date(new Date().setHours(16, 30, 0, 0)),
       description: "New software training",
-      color: "#10b981",
+      color: null,
+      category: "training",
     },
     
     // Conference Room B - Client meetings
@@ -184,7 +260,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(9, 0, 0, 0)),
       endTime: new Date(new Date().setHours(10, 30, 0, 0)),
       description: "Quarterly review",
-      color: "#f59e0b",
+      color: null,
+      category: "meeting",
     },
     {
       id: "18",
@@ -193,7 +270,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(11, 0, 0, 0)),
       endTime: new Date(new Date().setHours(11, 15, 0, 0)),
       description: "Daily sync",
-      color: "#f59e0b",
+      color: null,
+      category: "meeting",
     },
     {
       id: "19",
@@ -202,7 +280,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(13, 30, 0, 0)),
       endTime: new Date(new Date().setHours(15, 30, 0, 0)),
       description: "Sprint planning session",
-      color: "#f59e0b",
+      color: null,
+      category: "meeting",
     },
     {
       id: "20",
@@ -211,10 +290,11 @@ export default function Home() {
       startTime: new Date(new Date().setHours(16, 0, 0, 0)),
       endTime: new Date(new Date().setHours(18, 0, 0, 0)),
       description: "Monthly board meeting",
-      color: "#f59e0b",
+      color: null,
+      category: "meeting",
     },
     
-    // John Smith - Technician maintenance
+    // John Smith - Technician with concurrent tasks
     {
       id: "21",
       title: "Equipment Inspection",
@@ -222,7 +302,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(8, 0, 0, 0)),
       endTime: new Date(new Date().setHours(9, 0, 0, 0)),
       description: "Morning equipment check",
-      color: "#ec4899",
+      color: null,
+      category: "maintenance",
     },
     {
       id: "22",
@@ -231,7 +312,18 @@ export default function Home() {
       startTime: new Date(new Date().setHours(9, 30, 0, 0)),
       endTime: new Date(new Date().setHours(11, 0, 0, 0)),
       description: "Routine calibration",
-      color: "#ec4899",
+      color: null,
+      category: "maintenance",
+    },
+    {
+      id: "22a",
+      title: "Emergency Repair Call",
+      resourceId: "5",
+      startTime: new Date(new Date().setHours(10, 0, 0, 0)),
+      endTime: new Date(new Date().setHours(10, 20, 0, 0)),
+      description: "Urgent equipment issue",
+      color: null,
+      category: "emergency",
     },
     {
       id: "23",
@@ -240,7 +332,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(11, 30, 0, 0)),
       endTime: new Date(new Date().setHours(12, 30, 0, 0)),
       description: "Fix ventilation system",
-      color: "#ec4899",
+      color: null,
+      category: "maintenance",
     },
     {
       id: "24",
@@ -249,7 +342,18 @@ export default function Home() {
       startTime: new Date(new Date().setHours(14, 0, 0, 0)),
       endTime: new Date(new Date().setHours(16, 0, 0, 0)),
       description: "Scheduled maintenance",
-      color: "#ec4899",
+      color: null,
+      category: "maintenance",
+    },
+    {
+      id: "24a",
+      title: "Part Ordering",
+      resourceId: "5",
+      startTime: new Date(new Date().setHours(15, 0, 0, 0)),
+      endTime: new Date(new Date().setHours(15, 30, 0, 0)),
+      description: "Order replacement parts",
+      color: null,
+      category: "maintenance",
     },
     {
       id: "25",
@@ -258,7 +362,8 @@ export default function Home() {
       startTime: new Date(new Date().setHours(16, 30, 0, 0)),
       endTime: new Date(new Date().setHours(17, 30, 0, 0)),
       description: "Monthly safety check",
-      color: "#ec4899",
+      color: null,
+      category: "maintenance",
     },
   ]);
 
@@ -300,7 +405,8 @@ export default function Home() {
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
         description: data.description,
-        color: data.color || resources.find(r => r.id === data.resourceId)?.color,
+        color: data.color || null,
+        category: data.category || null,
       };
       setEvents([...events, newEvent]);
     }

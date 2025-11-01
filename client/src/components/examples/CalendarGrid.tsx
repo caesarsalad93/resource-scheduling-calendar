@@ -14,7 +14,8 @@ const mockEvents = [
     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
     endTime: new Date(new Date().setHours(10, 0, 0, 0)),
     description: "Annual checkup",
-    color: "#3b82f6",
+    color: null,
+    category: "appointment",
   },
   {
     id: "2",
@@ -23,7 +24,8 @@ const mockEvents = [
     startTime: new Date(new Date().setHours(10, 30, 0, 0)),
     endTime: new Date(new Date().setHours(11, 30, 0, 0)),
     description: "Weekly sync",
-    color: "#10b981",
+    color: null,
+    category: "meeting",
   },
   {
     id: "3",
@@ -32,7 +34,8 @@ const mockEvents = [
     startTime: new Date(new Date().setHours(14, 0, 0, 0)),
     endTime: new Date(new Date().setHours(15, 30, 0, 0)),
     description: "Pre-op consultation",
-    color: "#8b5cf6",
+    color: null,
+    category: "surgery",
   },
 ];
 
