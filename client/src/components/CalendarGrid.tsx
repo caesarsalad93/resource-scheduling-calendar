@@ -59,7 +59,12 @@ export function CalendarGrid({
   return (
     <div className="flex-1 overflow-auto">
       <div className="min-w-max">
-        <div className="grid grid-cols-[80px_repeat(var(--resource-count),_minmax(200px,_1fr))] border-b sticky top-0 bg-background z-10">
+        <div 
+          className="grid border-b sticky top-0 bg-background z-10"
+          style={{ 
+            gridTemplateColumns: `80px repeat(${resources.length}, minmax(200px, 1fr))` 
+          }}
+        >
           <div className="p-3 border-r" />
           {resources.map((resource) => (
             <div
@@ -84,7 +89,7 @@ export function CalendarGrid({
         {hours.map((hour) => (
           <div
             key={hour}
-            className="grid grid-cols-[80px_repeat(var(--resource-count),_minmax(200px,_1fr))] border-b"
+            className="grid border-b"
             style={{ 
               gridTemplateColumns: `80px repeat(${resources.length}, minmax(200px, 1fr))`,
               minHeight: '80px'
