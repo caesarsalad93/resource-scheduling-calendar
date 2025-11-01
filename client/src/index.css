@@ -371,9 +371,13 @@
   /* Hide interactive elements when printing */
   .no-print,
   button,
-  [role="button"],
-  .hover-elevate,
-  .active-elevate-2 {
+  [role="button"] {
+    display: none !important;
+  }
+
+  /* Disable hover/active effects in print without hiding elements */
+  .hover-elevate::after,
+  .active-elevate-2::after {
     display: none !important;
   }
 
