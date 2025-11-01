@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format, isSameDay } from "date-fns";
 import { CalendarToolbar } from "@/components/CalendarToolbar";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { EventDialog } from "@/components/EventDialog";
@@ -428,8 +429,17 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <div className="flex items-center justify-between border-b">
+    <div className="flex flex-col h-screen bg-background print-calendar-container">
+      {/* Print Header - only visible when printing */}
+      <div className="hidden print:block print-header">
+        <h1 className="text-2xl font-bold">Resource Schedule</h1>
+        <p className="text-sm text-gray-600">
+          {format(currentDate, "EEEE, MMMM d, yyyy")} • {resources.length} Resources • {events.filter(e => isSameDay(new Date(e.startTime), currentDate)).length} Events
+        </p>
+      </div>
+
+      {/* Interactive toolbar - hidden when printing */}
+      <div className="flex items-center justify-between border-b no-print">
         <div className="flex-1">
           <CalendarToolbar
             currentDate={currentDate}
