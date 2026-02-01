@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { insertPanelSchema, insertEventSchema } from "@shared/schema";
 import { db } from "./db";
 import { panels, events } from "@shared/schema";
+import Airtable from "airtable";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Seed endpoint for development
@@ -104,6 +106,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to seed database" });
     }
   });
+
+  // Airtable sync endpoint
+  app.post("/api/sync/airtable", async (req, res) => {
+    try {
+      const apiKey = process.env.AIRTABLE_API_TOKEN;
+      const baseId = process.env.AIRTABLE_BASE_ID;
+
+      if (!apiKey || !baseId) {
+        return res.status(500).json({ error: "Airtable credentials not configured" });
+      }
+
+      const base = new Airtable({ apiKey }).base(baseId);
+
+      // Step 1: Clear existing data (events first due to foreign key)
+      await db.delete(events);
+      await db.delete(panels);
+
+      // Step 2: Fetch and insert Panels from Airtable
+      const panelRecords: any[] = [];
+      await base("Panels")
+        .select({ view: "Grid view" })
+        .eachPage((records, fetchNextPage) => {
+          records.forEach((record) => {
+            panelRecords.push({
+              airtableId: record.id,
+              name: record.get("Name") as string || "Unnamed Panel",
+              type: record.get("Type") as string || "Panel",
+              color: record.get("Color") as string || "#3b82f6",
+              location: record.get("Location") as string || null,
+            });
+          });
+          fetchNextPage();
+        });
+
+      // Insert panels and build ID mapping (Airtable ID -> PostgreSQL ID)
+      const panelIdMap: Record<string, string> = {};
+      for (const panel of panelRecords) {
+        const { airtableId, ...panelData } = panel;
+        const [inserted] = await db.insert(panels).values(panelData).returning();
+        panelIdMap[airtableId] = inserted.id;
+      }
+
+      // Step 3: Fetch and insert Events from Airtable
+      const eventRecords: any[] = [];
+      await base("Events")
+        .select({ view: "Grid view" })
+        .eachPage((records, fetchNextPage) => {
+          records.forEach((record) => {
+            const panelLink = record.get("Panel") as string[];
+            const airtablePanelId = panelLink && panelLink[0] ? panelLink[0] : null;
+            
+            eventRecords.push({
+              title: record.get("Title") as string || "Untitled Event",
+              airtablePanelId,
+              startTime: record.get("Start Time") as string,
+              endTime: record.get("End Time") as string,
+              description: record.get("Description") as string || null,
+              color: record.get("Color") as string || null,
+              category: record.get("Category") as string || null,
+              location: record.get("Location") as string || null,
+            });
+          });
+          fetchNextPage();
+        });
+
+      // Insert events with mapped panel IDs
+      let eventsInserted = 0;
+      for (const event of eventRecords) {
+        const { airtablePanelId, startTime, endTime, ...eventData } = event;
+        
+        // Skip events without a valid panel link
+        if (!airtablePanelId || !panelIdMap[airtablePanelId]) {
+          console.warn(`Skipping event "${event.title}" - no valid panel link`);
+          continue;
+        }
+
+        // Skip events without valid times
+        if (!startTime || !endTime) {
+          console.warn(`Skipping event "${event.title}" - missing start/end time`);
+          continue;
+        }
+
+        await db.insert(events).values({
+          ...eventData,
+          panelId: panelIdMap[airtablePanelId],
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+        });
+        eventsInserted++;
+      }
+
+      res.json({
+        message: "Airtable sync completed successfully",
+        panels: panelRecords.length,
+        events: eventsInserted,
+      });
+    } catch (error) {
+      console.error("Airtable sync error:", error);
+      res.status(500).json({ error: "Failed to sync from Airtable", details: String(error) });
+    }
+  });
+
   // Panel routes
   app.get("/api/panels", async (req, res) => {
     try {
