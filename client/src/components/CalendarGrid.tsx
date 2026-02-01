@@ -40,7 +40,7 @@ export function CalendarGrid({
       const eventStart = new Date(event.startTime);
       
       return (
-        event.resourceId === resourceId &&
+        event.panelId === resourceId &&
         isSameDay(eventStart, currentDate) &&
         eventStart >= slotStart &&
         eventStart < slotEnd
@@ -53,7 +53,7 @@ export function CalendarGrid({
     const eventEnd = new Date(event.endTime);
     
     return events.filter((e) => {
-      if (e.id === event.id || e.resourceId !== resourceId) return false;
+      if (e.id === event.id || e.panelId !== resourceId) return false;
       
       const eStart = new Date(e.startTime);
       const eEnd = new Date(e.endTime);
