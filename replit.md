@@ -2,7 +2,11 @@
 
 ## Overview
 
-A resource scheduling calendar application that enables visualization and management of events across multiple resources. The system provides a grid-based interface for scheduling appointments, meetings, room bookings, and task assignments. Built with a modern React frontend using shadcn/ui components and an Express backend, with data persistence using Drizzle ORM.
+A read-only resource scheduling calendar for convention/expo events. Displays events by resource (called "Panels") in a grid layout with day-view display. Panels appear as column headers with their daily events displayed below in time slots. Supports category-based color coding and saved view presets. Data syncs from Airtable to PostgreSQL to avoid API rate limits.
+
+## Important Documentation
+
+- **DEBUGGING_NOTES.md** - Critical debugging lessons and quirks discovered during development. READ THIS FIRST if troubleshooting issues.
 
 ## User Preferences
 
@@ -60,10 +64,18 @@ Preferred communication style: Simple, everyday language.
 **ORM**: Drizzle ORM configured for PostgreSQL (via `@neondatabase/serverless`)
 
 **Schema Design**:
-- **Resources Table**: Stores schedulable entities (doctors, rooms, technicians)
-  - Fields: id (UUID), name, type, color
+- **Panels Table**: Stores schedulable resources (convention panels, booths, stages)
+  - Fields: id (UUID), name, type, color, location
+  - Types: Autograph, Exclusive, Panel, Cart, Media
 - **Events Table**: Stores scheduling entries
-  - Fields: id (UUID), title, resourceId (foreign key), startTime, endTime, description, color, category
+  - Fields: id (UUID), title, panelId (foreign key), startTime, endTime, description, color, category, location
+  - Categories: autograph, exclusive, panel, cart, media, miscellaneous
+
+**Airtable Integration**:
+- Data syncs from Airtable via `POST /api/sync/airtable`
+- Requires: AIRTABLE_API_TOKEN (secret), AIRTABLE_BASE_ID (env var)
+- Clears and reloads all data on each sync
+- Times are parsed as local time (Z suffix stripped)
 
 **Validation**: Zod schemas derived from Drizzle table definitions for runtime type safety
 
