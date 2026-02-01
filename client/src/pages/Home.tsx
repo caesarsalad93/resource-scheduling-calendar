@@ -47,8 +47,14 @@ export default function Home() {
   });
 
   // Fetch events by current date
+  const dateStr = format(currentDate, "yyyy-MM-dd");
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
-    queryKey: ["/api/events", { date: format(currentDate, "yyyy-MM-dd") }],
+    queryKey: ["/api/events", dateStr],
+    queryFn: async () => {
+      const res = await fetch(`/api/events?date=${dateStr}`);
+      if (!res.ok) throw new Error("Failed to fetch events");
+      return res.json();
+    },
   });
 
   // Create panel mutation
