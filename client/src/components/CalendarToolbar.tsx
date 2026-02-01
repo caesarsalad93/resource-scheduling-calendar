@@ -210,28 +210,44 @@ export function CalendarToolbar({
             All
           </Button>
           <Button
-            variant={resourceTypeFilter === "Doctor" ? "secondary" : "ghost"}
+            variant={resourceTypeFilter === "Autograph" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => onResourceTypeFilterChange("Doctor")}
-            data-testid="button-filter-doctor"
+            onClick={() => onResourceTypeFilterChange("Autograph")}
+            data-testid="button-filter-autograph"
           >
-            Doctors
+            Autograph
           </Button>
           <Button
-            variant={resourceTypeFilter === "Room" ? "secondary" : "ghost"}
+            variant={resourceTypeFilter === "Exclusive" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => onResourceTypeFilterChange("Room")}
-            data-testid="button-filter-room"
+            onClick={() => onResourceTypeFilterChange("Exclusive")}
+            data-testid="button-filter-exclusive"
           >
-            Rooms
+            Exclusive
           </Button>
           <Button
-            variant={resourceTypeFilter === "Technician" ? "secondary" : "ghost"}
+            variant={resourceTypeFilter === "Panel" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => onResourceTypeFilterChange("Technician")}
-            data-testid="button-filter-technician"
+            onClick={() => onResourceTypeFilterChange("Panel")}
+            data-testid="button-filter-panel"
           >
-            Technicians
+            Panel
+          </Button>
+          <Button
+            variant={resourceTypeFilter === "Cart" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onResourceTypeFilterChange("Cart")}
+            data-testid="button-filter-cart"
+          >
+            Cart
+          </Button>
+          <Button
+            variant={resourceTypeFilter === "Media" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onResourceTypeFilterChange("Media")}
+            data-testid="button-filter-media"
+          >
+            Media
           </Button>
         </div>
       </div>
