@@ -30,11 +30,18 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const hours = Array.from({ length: 12 }, (_, i) => i + 8);
 
+  // Parse timestamp as local time (strip Z suffix to prevent UTC conversion)
+  const parseLocalTime = (timestamp: string | Date): Date => {
+    if (timestamp instanceof Date) return timestamp;
+    // Remove Z suffix to treat as local time, not UTC
+    return new Date(timestamp.replace('Z', ''));
+  };
+
   const getEventsForResourceAndTime = (resourceId: string, hour: number) => {
     return events.filter((event) => {
       if (event.panelId !== resourceId) return false;
       
-      const eventStart = new Date(event.startTime);
+      const eventStart = parseLocalTime(event.startTime);
       const eventHour = eventStart.getHours();
       
       return (
@@ -45,14 +52,14 @@ export function CalendarGrid({
   };
 
   const getOverlappingEvents = (resourceId: string, event: Event) => {
-    const eventStart = new Date(event.startTime);
-    const eventEnd = new Date(event.endTime);
+    const eventStart = parseLocalTime(event.startTime);
+    const eventEnd = parseLocalTime(event.endTime);
     
     return events.filter((e) => {
       if (e.id === event.id || e.panelId !== resourceId) return false;
       
-      const eStart = new Date(e.startTime);
-      const eEnd = new Date(e.endTime);
+      const eStart = parseLocalTime(e.startTime);
+      const eEnd = parseLocalTime(e.endTime);
       
       return (
         isSameDay(eStart, currentDate) &&
@@ -66,8 +73,8 @@ export function CalendarGrid({
   const getEventPosition = (event: Event, hour: number) => {
     const slotStart = new Date(currentDate);
     slotStart.setHours(hour, 0, 0, 0);
-    const eventStart = new Date(event.startTime);
-    const eventEnd = new Date(event.endTime);
+    const eventStart = parseLocalTime(event.startTime);
+    const eventEnd = parseLocalTime(event.endTime);
 
     const minutesFromSlotStart = Math.max(0, differenceInMinutes(eventStart, slotStart));
     const totalEventDurationMinutes = differenceInMinutes(eventEnd, eventStart);
@@ -169,7 +176,7 @@ export function CalendarGrid({
                           {event.title}
                         </div>
                         <div className="text-white/80 text-[10px] print:text-gray-700">
-                          {format(new Date(event.startTime), "h:mm a")}
+                          {format(parseLocalTime(event.startTime), "h:mm a")}
                         </div>
                       </div>
                     );
