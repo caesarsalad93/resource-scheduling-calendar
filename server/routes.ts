@@ -188,11 +188,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
+        // Parse times as local time (strip Z suffix to prevent UTC conversion)
+        // Airtable returns UTC but users enter "wall clock" times
+        const parseAsLocalTime = (isoString: string) => {
+          // Remove the Z suffix to treat as local time
+          const localString = isoString.replace('Z', '');
+          return new Date(localString);
+        };
+
         await db.insert(events).values({
           ...eventData,
           panelId: panelIdMap[airtablePanelId],
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
+          startTime: parseAsLocalTime(startTime),
+          endTime: parseAsLocalTime(endTime),
         });
         eventsInserted++;
       }
