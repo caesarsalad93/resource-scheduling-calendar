@@ -31,19 +31,15 @@ export function CalendarGrid({
   const hours = Array.from({ length: 12 }, (_, i) => i + 8);
 
   const getEventsForResourceAndTime = (resourceId: string, hour: number) => {
-    const slotStart = new Date(currentDate);
-    slotStart.setHours(hour, 0, 0, 0);
-    const slotEnd = new Date(currentDate);
-    slotEnd.setHours(hour + 1, 0, 0, 0);
-
     return events.filter((event) => {
+      if (event.panelId !== resourceId) return false;
+      
       const eventStart = new Date(event.startTime);
+      const eventHour = eventStart.getHours();
       
       return (
-        event.panelId === resourceId &&
         isSameDay(eventStart, currentDate) &&
-        eventStart >= slotStart &&
-        eventStart < slotEnd
+        eventHour === hour
       );
     });
   };
