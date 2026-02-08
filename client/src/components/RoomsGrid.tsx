@@ -1,7 +1,8 @@
 import { format, addHours, startOfDay } from "date-fns";
-import type { Panel, Event } from "@shared/schema";
+import type { Room, Panel, Event } from "@shared/schema";
 
-interface CalendarGridProps {
+interface RoomsGridProps {
+  rooms: Room[];
   panels: Panel[];
   events: Event[];
   currentDate: string;
@@ -35,13 +36,15 @@ const END_HOUR = 22;
 const SLOT_MINUTES = 15;
 const TOTAL_SLOTS = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 
-export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps) {
+export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps) {
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
 
   const dayEvents = events.filter((e) => e.date === currentDate);
 
-  const getEventsForPanel = (panelId: string) =>
-    dayEvents.filter((e) => e.panelId === panelId);
+  const panelMap = new Map(panels.map((p) => [p.id, p]));
+
+  const getEventsForRoom = (roomId: string) =>
+    dayEvents.filter((e) => e.roomId === roomId);
 
   const getEventStyle = (event: Event) => {
     const startMin = timeToMinutes(event.startTime);
@@ -64,13 +67,16 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
         <div
           className="grid border-b sticky top-0 bg-background z-10 print:static"
           style={{
-            gridTemplateColumns: `80px repeat(${panels.length}, minmax(160px, 1fr))`,
+            gridTemplateColumns: `80px repeat(${rooms.length}, minmax(160px, 1fr))`,
           }}
         >
           <div className="p-3 border-r" />
-          {panels.map((panel) => (
-            <div key={panel.id} className="p-3 border-r">
-              <div className="font-medium text-sm truncate">{panel.panelName}</div>
+          {rooms.map((room) => (
+            <div key={room.id} className="p-3 border-r">
+              <div className="font-medium text-sm truncate">{room.roomName}</div>
+              {room.district && (
+                <div className="text-xs text-muted-foreground">{room.district}</div>
+              )}
             </div>
           ))}
         </div>
@@ -79,7 +85,7 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `80px repeat(${panels.length}, minmax(160px, 1fr))`,
+            gridTemplateColumns: `80px repeat(${rooms.length}, minmax(160px, 1fr))`,
           }}
         >
           {/* Time labels column */}
@@ -94,20 +100,21 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
             ))}
           </div>
 
-          {/* Panel columns */}
-          {panels.map((panel) => {
-            const panelEvents = getEventsForPanel(panel.id);
+          {/* Room columns */}
+          {rooms.map((room) => {
+            const roomEvents = getEventsForRoom(room.id);
             return (
-              <div key={panel.id} className="border-r relative">
+              <div key={room.id} className="border-r relative">
                 {/* Hour grid lines */}
                 {hours.map((hour) => (
                   <div key={hour} className="h-20 border-b" />
                 ))}
 
                 {/* Event blocks */}
-                {panelEvents.map((event) => {
+                {roomEvents.map((event) => {
                   const style = getEventStyle(event);
                   const color = getColor(event);
+                  const panel = event.panelId ? panelMap.get(event.panelId) : null;
                   return (
                     <div
                       key={event.id}
@@ -124,9 +131,9 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
                       <div className="text-white/80 text-[10px] print:text-gray-700">
                         {formatTime(event.startTime)} – {formatTime(event.endTime)}
                       </div>
-                      {event.eventType && (
+                      {panel && (
                         <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {event.eventType}
+                          {panel.panelName}
                         </div>
                       )}
                     </div>

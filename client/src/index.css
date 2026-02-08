@@ -369,7 +369,8 @@
 
   /* Hide interactive elements when printing */
   .no-print,
-  button,
+  select,
+  button:not(.print-event *),
   [role="button"] {
     display: none !important;
   }

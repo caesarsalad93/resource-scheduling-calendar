@@ -1,253 +1,148 @@
-import { ChevronLeft, ChevronRight, Plus, Save, Bookmark } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { format, addDays } from "date-fns";
 
-type ViewMode = "day" | "week" | "month";
-
-export interface SavedView {
-  id: string;
-  name: string;
-  date: string;
-  resourceTypeFilter: string | null;
-}
+type GridMode = "panels" | "rooms";
 
 interface CalendarToolbarProps {
-  currentDate: Date;
-  viewMode: ViewMode;
-  resourceTypeFilter: string | null;
-  savedViews: SavedView[];
-  onDateChange: (date: Date) => void;
-  onViewModeChange: (mode: ViewMode) => void;
-  onResourceTypeFilterChange: (type: string | null) => void;
-  onSaveView: () => void;
-  onLoadView: (view: SavedView) => void;
-  onDeleteView: (viewId: string) => void;
-  onCreateEvent: () => void;
-  onAddResource: () => void;
+  currentDate: string;
+  gridMode: GridMode;
+  districts: string[];
+  districtFilter: string | null;
+  onDateChange: (date: string) => void;
+  onGridModeChange: (mode: GridMode) => void;
+  onDistrictFilterChange: (district: string | null) => void;
+  availableDates: string[];
+  onSync: () => Promise<void>;
 }
 
 export function CalendarToolbar({
   currentDate,
-  viewMode,
-  resourceTypeFilter,
-  savedViews,
+  gridMode,
+  districts,
+  districtFilter,
   onDateChange,
-  onViewModeChange,
-  onResourceTypeFilterChange,
-  onSaveView,
-  onLoadView,
-  onDeleteView,
-  onCreateEvent,
-  onAddResource,
+  onGridModeChange,
+  onDistrictFilterChange,
+  availableDates,
+  onSync,
 }: CalendarToolbarProps) {
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await onSync();
+    } finally {
+      setSyncing(false);
+    }
+  };
   const goToPrevious = () => {
-    if (viewMode === "day") {
-      onDateChange(addDays(currentDate, -1));
-    } else if (viewMode === "week") {
-      onDateChange(addDays(currentDate, -7));
+    const idx = availableDates.indexOf(currentDate);
+    if (idx > 0) {
+      onDateChange(availableDates[idx - 1]);
     } else {
-      onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+      // fallback: go back one day
+      const d = new Date(currentDate + "T00:00:00");
+      onDateChange(format(addDays(d, -1), "yyyy-MM-dd"));
     }
   };
 
   const goToNext = () => {
-    if (viewMode === "day") {
-      onDateChange(addDays(currentDate, 1));
-    } else if (viewMode === "week") {
-      onDateChange(addDays(currentDate, 7));
+    const idx = availableDates.indexOf(currentDate);
+    if (idx >= 0 && idx < availableDates.length - 1) {
+      onDateChange(availableDates[idx + 1]);
     } else {
-      onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+      const d = new Date(currentDate + "T00:00:00");
+      onDateChange(format(addDays(d, 1), "yyyy-MM-dd"));
     }
   };
 
-  const goToToday = () => {
-    onDateChange(new Date());
-  };
-
-  const getDateRange = () => {
-    if (viewMode === "day") {
-      return format(currentDate, "MMMM d, yyyy");
-    } else if (viewMode === "week") {
-      const start = startOfWeek(currentDate);
-      const end = endOfWeek(currentDate);
-      return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
-    } else {
-      return format(currentDate, "MMMM yyyy");
-    }
-  };
+  const displayDate = currentDate
+    ? format(new Date(currentDate + "T00:00:00"), "EEEE, MMMM d, yyyy")
+    : "";
 
   return (
     <div className="flex flex-col gap-3 p-4 border-b bg-background">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPrevious}
-              data-testid="button-previous"
-            >
+            <Button variant="outline" size="icon" onClick={goToPrevious}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              onClick={goToToday}
-              data-testid="button-today"
-            >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNext}
-              data-testid="button-next"
-            >
+            <Button variant="outline" size="icon" onClick={goToNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-lg font-semibold" data-testid="text-date-range">
-            {getDateRange()}
-          </h2>
+          <h2 className="text-lg font-semibold">{displayDate}</h2>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Grid mode toggle */}
           <div className="flex items-center gap-1 border rounded-md p-1">
             <Button
-              variant={viewMode === "day" ? "secondary" : "ghost"}
+              variant={gridMode === "panels" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => onViewModeChange("day")}
-              data-testid="button-view-day"
+              onClick={() => onGridModeChange("panels")}
             >
-              Day
+              Panels
             </Button>
             <Button
-              variant={viewMode === "week" ? "secondary" : "ghost"}
+              variant={gridMode === "rooms" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => onViewModeChange("week")}
-              data-testid="button-view-week"
+              onClick={() => onGridModeChange("rooms")}
             >
-              Week
-            </Button>
-            <Button
-              variant={viewMode === "month" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => onViewModeChange("month")}
-              data-testid="button-view-month"
-            >
-              Month
+              Rooms
             </Button>
           </div>
 
-          <Button variant="outline" size="sm" onClick={onSaveView} data-testid="button-save-view">
-            <Save className="h-4 w-4 mr-2" />
-            Save View
-          </Button>
-
-          {savedViews.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" data-testid="button-saved-views">
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Saved Views ({savedViews.length})
+          {/* District filter (rooms mode only) */}
+          {gridMode === "rooms" && districts.length > 0 && (
+            <div className="flex items-center gap-1 border rounded-md p-1">
+              <Button
+                variant={districtFilter === null ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => onDistrictFilterChange(null)}
+              >
+                All
+              </Button>
+              {districts.map((d) => (
+                <Button
+                  key={d}
+                  variant={districtFilter === d ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => onDistrictFilterChange(d)}
+                >
+                  {d}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {savedViews.map((view) => (
-                  <DropdownMenuItem
-                    key={view.id}
-                    onClick={() => onLoadView(view)}
-                    data-testid={`menu-item-view-${view.id}`}
-                  >
-                    <div className="flex items-center justify-between w-full gap-4">
-                      <span>{view.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteView(view.id);
-                        }}
-                        data-testid={`button-delete-view-${view.id}`}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ))}
+            </div>
           )}
 
-          <Button variant="outline" onClick={onAddResource} data-testid="button-add-resource">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Resource
+          {/* Date picker from available dates */}
+          {availableDates.length > 1 && (
+            <select
+              className="border rounded-md px-2 py-1 text-sm bg-background"
+              value={currentDate}
+              onChange={(e) => onDateChange(e.target.value)}
+            >
+              {availableDates.map((d) => (
+                <option key={d} value={d}>
+                  {format(new Date(d + "T00:00:00"), "MMM d, yyyy")}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync"}
           </Button>
 
-          <Button onClick={onCreateEvent} data-testid="button-create-event">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Event
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Filter by type:</span>
-        <div className="flex items-center gap-1 border rounded-md p-1">
-          <Button
-            variant={resourceTypeFilter === null ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange(null)}
-            data-testid="button-filter-all"
-          >
-            All
-          </Button>
-          <Button
-            variant={resourceTypeFilter === "Autograph" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange("Autograph")}
-            data-testid="button-filter-autograph"
-          >
-            Autograph
-          </Button>
-          <Button
-            variant={resourceTypeFilter === "Exclusive" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange("Exclusive")}
-            data-testid="button-filter-exclusive"
-          >
-            Exclusive
-          </Button>
-          <Button
-            variant={resourceTypeFilter === "Panel" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange("Panel")}
-            data-testid="button-filter-panel"
-          >
-            Panel
-          </Button>
-          <Button
-            variant={resourceTypeFilter === "Cart" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange("Cart")}
-            data-testid="button-filter-cart"
-          >
-            Cart
-          </Button>
-          <Button
-            variant={resourceTypeFilter === "Media" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onResourceTypeFilterChange("Media")}
-            data-testid="button-filter-media"
-          >
-            Media
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
           </Button>
         </div>
       </div>
