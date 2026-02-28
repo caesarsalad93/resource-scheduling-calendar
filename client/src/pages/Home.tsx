@@ -5,6 +5,7 @@ import { CalendarToolbar } from "@/components/CalendarToolbar";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { RoomsGrid } from "@/components/RoomsGrid";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { timeToMinutes } from "@/lib/calendar-utils";
 import type { Panel, Room, Event } from "@shared/schema";
 
 const STORAGE_KEY = "calendar-filters";
@@ -87,18 +88,35 @@ export default function Home() {
     return Array.from(new Set(d)).sort();
   }, [rooms]);
 
-  // Filter panels to only those with events on the current date
+  // Filter panels to only those with events on the current date, sorted by earliest event
   const filteredPanels = useMemo(() => {
-    const panelIdsWithEvents = new Set(
-      events.filter((e) => e.date === currentDate).map((e) => e.panelId)
-    );
-    return panels.filter((p) => panelIdsWithEvents.has(p.id));
+    const dayEvents = events.filter((e) => e.date === currentDate);
+    const panelIdsWithEvents = new Set(dayEvents.map((e) => e.panelId));
+    const earliestByPanel = new Map<string, number>();
+    for (const e of dayEvents) {
+      if (!e.panelId) continue;
+      const mins = timeToMinutes(e.startTime);
+      const prev = earliestByPanel.get(e.panelId);
+      if (prev === undefined || mins < prev) earliestByPanel.set(e.panelId, mins);
+    }
+    return panels
+      .filter((p) => panelIdsWithEvents.has(p.id))
+      .sort((a, b) => (earliestByPanel.get(a.id) ?? Infinity) - (earliestByPanel.get(b.id) ?? Infinity));
   }, [panels, events, currentDate]);
 
-  // Filter rooms by district
-  const filteredRooms = districtFilter
-    ? rooms.filter((r) => r.district === districtFilter)
-    : rooms;
+  // Filter rooms by district, sorted by earliest event
+  const filteredRooms = useMemo(() => {
+    const base = districtFilter ? rooms.filter((r) => r.district === districtFilter) : rooms;
+    const dayEvents = events.filter((e) => e.date === currentDate);
+    const earliestByRoom = new Map<string, number>();
+    for (const e of dayEvents) {
+      if (!e.roomId) continue;
+      const mins = timeToMinutes(e.startTime);
+      const prev = earliestByRoom.get(e.roomId);
+      if (prev === undefined || mins < prev) earliestByRoom.set(e.roomId, mins);
+    }
+    return [...base].sort((a, b) => (earliestByRoom.get(a.id) ?? Infinity) - (earliestByRoom.get(b.id) ?? Infinity));
+  }, [rooms, events, currentDate, districtFilter]);
 
   return (
     <div className="flex flex-col h-screen bg-background print-calendar-container">
