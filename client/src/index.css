@@ -359,7 +359,7 @@
 /* Print Styles */
 @media print {
   @page {
-    margin: 0.5in;
+    margin: 0.25in;
   }
 
   body {
@@ -397,6 +397,12 @@
   .print-calendar-grid {
     overflow: visible !important;
     max-height: none !important;
+  }
+
+  /* Auto-fit columns to page width in print */
+  :root {
+    --grid-col-min: 0px;
+    --grid-time-col: 40px;
   }
 
   /* Ensure all content is visible */
@@ -448,6 +454,46 @@
   .print-compact {
     padding: 0.25rem !important;
     font-size: 10pt !important;
+  }
+
+  /* Compact header cells */
+  .print-calendar-grid .p-3 {
+    padding: 2px 4px !important;
+  }
+
+  .print-calendar-grid .text-sm {
+    font-size: 7pt !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Compact time labels */
+  .print-calendar-grid .text-xs.text-muted-foreground {
+    font-size: 6pt !important;
+    padding: 1px !important;
+  }
+
+  /* Compact event blocks */
+  .print-calendar-grid .print-event {
+    left: 1px !important;
+    right: 1px !important;
+    padding: 1px 2px !important;
+    font-size: 6pt !important;
+    line-height: 1.1 !important;
+    border-radius: 1px !important;
+  }
+
+  .print-calendar-grid .print-event .text-\[10px\] {
+    font-size: 5pt !important;
+  }
+
+  /* Reduce hour row height */
+  .print-calendar-grid .h-20 {
+    height: 3rem !important;
+  }
+
+  /* Remove min-w-max so grid can shrink */
+  .print-calendar-grid .min-w-max {
+    min-width: 0 !important;
   }
 
   /* Page break controls */
