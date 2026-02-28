@@ -31,8 +31,8 @@ function formatTime(time: string): string {
   return m === 0 ? `${hour12} ${ampm}` : `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
-const START_HOUR = 8;
-const END_HOUR = 22;
+const START_HOUR = 9;
+const END_HOUR = 21;
 const SLOT_MINUTES = 15;
 const TOTAL_SLOTS = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 
@@ -67,7 +67,7 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
         <div
           className="grid border-b sticky top-0 bg-background z-10 print:static"
           style={{
-            gridTemplateColumns: `80px repeat(${rooms.length}, minmax(160px, 1fr))`,
+            gridTemplateColumns: `var(--grid-time-col, 80px) repeat(${rooms.length}, minmax(var(--grid-col-min, 160px), 1fr))`,
           }}
         >
           <div className="p-3 border-r" />
@@ -85,7 +85,7 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `80px repeat(${rooms.length}, minmax(160px, 1fr))`,
+            gridTemplateColumns: `var(--grid-time-col, 80px) repeat(${rooms.length}, minmax(var(--grid-col-min, 160px), 1fr))`,
           }}
         >
           {/* Time labels column */}

@@ -496,6 +496,18 @@
     min-width: 0 !important;
   }
 
+  /* Allow text to wrap in print instead of truncating */
+  .print-calendar-grid .truncate {
+    overflow: visible !important;
+    text-overflow: unset !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .print-calendar-grid .overflow-hidden {
+    overflow: visible !important;
+  }
+
   /* Page break controls */
   .page-break-before {
     page-break-before: always;

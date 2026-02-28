@@ -32,7 +32,7 @@ function saveFilters(f: StoredFilters) {
 export default function Home() {
   const stored = useMemo(() => loadFilters(), []);
   const [gridMode, setGridMode] = useState<GridMode>(stored.gridMode);
-  const [currentDate, setCurrentDate] = useState<string>(stored.date || "");
+  const [currentDate, setCurrentDate] = useState<string>("2026-03-27");
   const [districtFilter, setDistrictFilter] = useState<string | null>(stored.districtFilter);
 
   const qc = useQueryClient();
@@ -87,6 +87,14 @@ export default function Home() {
     return Array.from(new Set(d)).sort();
   }, [rooms]);
 
+  // Filter panels to only those with events on the current date
+  const filteredPanels = useMemo(() => {
+    const panelIdsWithEvents = new Set(
+      events.filter((e) => e.date === currentDate).map((e) => e.panelId)
+    );
+    return panels.filter((p) => panelIdsWithEvents.has(p.id));
+  }, [panels, events, currentDate]);
+
   // Filter rooms by district
   const filteredRooms = districtFilter
     ? rooms.filter((r) => r.district === districtFilter)
@@ -124,7 +132,7 @@ export default function Home() {
 
       {/* Grid */}
       {gridMode === "panels" ? (
-        <CalendarGrid panels={panels} events={events} currentDate={currentDate} />
+        <CalendarGrid panels={filteredPanels} events={events} currentDate={currentDate} />
       ) : (
         <RoomsGrid rooms={filteredRooms} panels={panels} events={events} currentDate={currentDate} />
       )}
