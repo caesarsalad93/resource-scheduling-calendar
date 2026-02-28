@@ -3,7 +3,7 @@ import {
   type Room, type InsertRoom,
   type Event, type InsertEvent,
   panels, rooms, events,
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
