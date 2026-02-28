@@ -10,9 +10,11 @@ Data flow: `Airtable → POST /api/sync/airtable → PostgreSQL → GET /api/eve
 
 ## Commands
 
-- **Dev server:** `npm run dev` (starts Express + Vite on port 5000)
+- **Dev server:** `npm run dev` (starts Express + Vite on port 3000)
 - **Type check:** `npm run check` (runs `tsc`)
 - **Build:** `npm run build` (Vite frontend build + esbuild server bundle)
+- **Build client only:** `npm run build:client` (Vite frontend, used by Vercel)
+- **Build API only:** `npm run build:api` (esbuild bundles `server/api-entry.ts` → `api/index.js`)
 - **Start production:** `npm run start`
 - **Push DB schema:** `npm run db:push` (drizzle-kit push)
 
@@ -71,6 +73,21 @@ No test framework is configured.
 - Filters persisted in localStorage and URL query params (`?mode=panels&date=2025-07-24`)
 - Print button triggers `window.print()` with clean print CSS
 - Styling: Tailwind CSS with CSS variable theming for light/dark modes.
+
+### Vercel Deployment
+
+- **Hosted at:** https://resource-scheduling-calendar.vercel.app
+- **Static frontend:** Vite builds to `dist/public`, served by Vercel CDN
+- **Serverless API:** Single catch-all Express function at `api/index.js`
+- **Build:** `npm run build:client` (Vite) + `npm run build:api` (esbuild)
+
+**Key constraint:** Vercel auto-detects `.ts` files in `api/` and compiles them itself, but its built-in compilation cannot resolve cross-directory imports or TypeScript path aliases. The solution is to keep the source at `server/api-entry.ts`, pre-bundle it with esbuild into `api/index.js` (which inlines all `server/` and `shared/` code), and commit the built file. Vercel then serves the self-contained JS bundle directly.
+
+```
+server/api-entry.ts  →  esbuild  →  api/index.js  →  Vercel serves
+```
+
+After changing server code, rebuild with `npm run build:api` and commit `api/index.js`.
 
 ## Environment Variables
 

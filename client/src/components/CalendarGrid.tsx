@@ -1,39 +1,18 @@
 import { format, addHours, startOfDay } from "date-fns";
 import type { Panel, Event } from "@shared/schema";
+import {
+  START_HOUR,
+  END_HOUR,
+  formatTime,
+  getColor,
+  layoutEvents,
+} from "@/lib/calendar-utils";
 
 interface CalendarGridProps {
   panels: Panel[];
   events: Event[];
   currentDate: string;
 }
-
-const EVENT_TYPE_COLORS: Record<string, string> = {
-  "Panel Room": "#3b82f6",
-  "Autograph Area": "#eab308",
-  "Exclusive Signing": "#22c55e",
-  "Catering": "#14b8a6",
-  "Cart": "#f97316",
-  "Media Room": "#a855f7",
-  "Exhibit Floor": "#f97316",
-  "Show Flow": "#6b7280",
-};
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function formatTime(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 || 12;
-  return m === 0 ? `${hour12} ${ampm}` : `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
-}
-
-const START_HOUR = 9;
-const END_HOUR = 21;
-const SLOT_MINUTES = 15;
-const TOTAL_SLOTS = ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES;
 
 export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps) {
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
@@ -42,20 +21,6 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
 
   const getEventsForPanel = (panelId: string) =>
     dayEvents.filter((e) => e.panelId === panelId);
-
-  const getEventStyle = (event: Event) => {
-    const startMin = timeToMinutes(event.startTime);
-    const endMin = timeToMinutes(event.endTime);
-    const gridStart = START_HOUR * 60;
-
-    const topPct = ((startMin - gridStart) / (TOTAL_SLOTS * SLOT_MINUTES)) * 100;
-    const heightPct = ((endMin - startMin) / (TOTAL_SLOTS * SLOT_MINUTES)) * 100;
-
-    return { top: `${topPct}%`, height: `${heightPct}%` };
-  };
-
-  const getColor = (event: Event) =>
-    EVENT_TYPE_COLORS[event.eventType || ""] || "#6b7280";
 
   return (
     <div className="flex-1 overflow-auto print-calendar-grid">
@@ -97,6 +62,7 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
           {/* Panel columns */}
           {panels.map((panel) => {
             const panelEvents = getEventsForPanel(panel.id);
+            const laid = layoutEvents(panelEvents);
             return (
               <div key={panel.id} className="border-r relative">
                 {/* Hour grid lines */}
@@ -105,28 +71,30 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
                 ))}
 
                 {/* Event blocks */}
-                {panelEvents.map((event) => {
-                  const style = getEventStyle(event);
-                  const color = getColor(event);
+                {laid.map((item) => {
+                  const color = getColor(item.event);
                   return (
                     <div
-                      key={event.id}
-                      className="absolute left-1 right-1 rounded px-2 py-1 text-xs overflow-hidden print-event avoid-page-break"
+                      key={item.event.id}
+                      className="absolute rounded px-2 py-1 text-xs overflow-hidden print-event avoid-page-break"
                       style={{
-                        ...style,
+                        top: item.top,
+                        height: item.height,
+                        left: item.left,
+                        width: item.width,
                         backgroundColor: color,
                         opacity: 0.9,
                       }}
                     >
                       <div className="font-medium text-white truncate print:text-black">
-                        {event.title}
+                        {item.event.title}
                       </div>
                       <div className="text-white/80 text-[10px] print:text-gray-700">
-                        {formatTime(event.startTime)} – {formatTime(event.endTime)}
+                        {formatTime(item.event.startTime)} – {formatTime(item.event.endTime)}
                       </div>
-                      {event.eventType && (
+                      {item.event.eventType && (
                         <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {event.eventType}
+                          {item.event.eventType}
                         </div>
                       )}
                     </div>
