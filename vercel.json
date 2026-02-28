@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build:client",
+  "buildCommand": "npm run build:client && npm run build:api",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/**/*.ts": {
-      "includeFiles": "server/**,shared/**"
+    "api/**/*.js": {
+      "runtime": "@vercel/node@3"
     }
   },
   "rewrites": [
