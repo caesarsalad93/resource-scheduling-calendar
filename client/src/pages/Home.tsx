@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { CalendarToolbar } from "@/components/CalendarToolbar";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { RoomsGrid } from "@/components/RoomsGrid";
+import { CalendarGridSkeleton } from "@/components/CalendarGridSkeleton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { timeToMinutes } from "@/lib/calendar-utils";
 import type { Panel, Room, Event } from "@shared/schema";
@@ -43,9 +44,10 @@ export default function Home() {
     await qc.invalidateQueries();
   };
 
-  const { data: panels = [] } = useQuery<Panel[]>({ queryKey: ["/api/panels"] });
-  const { data: rooms = [] } = useQuery<Room[]>({ queryKey: ["/api/rooms"] });
-  const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/events"] });
+  const { data: panels = [], isLoading: panelsLoading } = useQuery<Panel[]>({ queryKey: ["/api/panels"] });
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({ queryKey: ["/api/rooms"] });
+  const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({ queryKey: ["/api/events"] });
+  const isLoading = panelsLoading || roomsLoading || eventsLoading;
 
   // Derive available dates from events and panels
   const availableDates = useMemo(() => {
@@ -165,7 +167,9 @@ export default function Home() {
       </div>
 
       {/* Grid */}
-      {gridMode === "panels" ? (
+      {isLoading ? (
+        <CalendarGridSkeleton />
+      ) : gridMode === "panels" ? (
         <CalendarGrid panels={filteredPanels} events={events} currentDate={currentDate} />
       ) : (
         <RoomsGrid rooms={filteredRooms} panels={panels} events={events} currentDate={currentDate} />
