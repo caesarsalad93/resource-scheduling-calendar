@@ -56,31 +56,7 @@ export function registerRoutes(app: Express): void {
       // Step 1: Clear all data
       await storage.clearAll();
 
-      // Step 2: Fetch and insert Panels
-      const panelRecords: { airtableId: string; panelName: string }[] = [];
-      await base("Panels")
-        .select({ view: "Grid view" })
-        .eachPage((records, fetchNextPage) => {
-          for (const record of records) {
-            panelRecords.push({
-              airtableId: record.id,
-              panelName: (record.get("Panel Name") as string) || "Unnamed Panel",
-            });
-          }
-          fetchNextPage();
-        });
-
-      const insertedPanels = await storage.insertPanels(
-        panelRecords.map((p) => ({ panelName: p.panelName }))
-      );
-
-      // Build Airtable ID → Postgres UUID map
-      const panelsMap: Record<string, string> = {};
-      panelRecords.forEach((rec, i) => {
-        panelsMap[rec.airtableId] = insertedPanels[i].id;
-      });
-
-      // Step 3: Fetch and insert Rooms
+      // Step 2: Fetch and insert Rooms (must come before Panels due to FK)
       const roomRecords: { airtableId: string; roomName: string; district: string | null }[] = [];
       await base("Rooms")
         .select({ view: "Grid view" })
@@ -102,6 +78,48 @@ export function registerRoutes(app: Express): void {
       const roomsMap: Record<string, string> = {};
       roomRecords.forEach((rec, i) => {
         roomsMap[rec.airtableId] = insertedRooms[i].id;
+      });
+
+      // Step 3: Fetch and insert Panels (with schedule fields)
+      const panelRecords: {
+        airtableId: string;
+        panelName: string;
+        date: string | null;
+        startTime: string | null;
+        endTime: string | null;
+        airtableRoomId: string | null;
+      }[] = [];
+      await base("Panels")
+        .select({ view: "Grid view" })
+        .eachPage((records, fetchNextPage) => {
+          for (const record of records) {
+            const roomLink = record.get("Room") as string[] | undefined;
+            panelRecords.push({
+              airtableId: record.id,
+              panelName: (record.get("Panel Name") as string) || "Unnamed Panel",
+              date: (record.get("Date") as string) || null,
+              startTime: (record.get("Start Time") as string) || null,
+              endTime: (record.get("End Time") as string) || null,
+              airtableRoomId: roomLink?.[0] || null,
+            });
+          }
+          fetchNextPage();
+        });
+
+      const insertedPanels = await storage.insertPanels(
+        panelRecords.map((p) => ({
+          panelName: p.panelName,
+          date: p.date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          roomId: p.airtableRoomId ? roomsMap[p.airtableRoomId] || null : null,
+        }))
+      );
+
+      // Build Airtable ID → Postgres UUID map
+      const panelsMap: Record<string, string> = {};
+      panelRecords.forEach((rec, i) => {
+        panelsMap[rec.airtableId] = insertedPanels[i].id;
       });
 
       // Step 4: Fetch and insert Events

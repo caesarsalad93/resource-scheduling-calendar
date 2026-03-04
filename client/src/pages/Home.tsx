@@ -47,11 +47,12 @@ export default function Home() {
   const { data: rooms = [] } = useQuery<Room[]>({ queryKey: ["/api/rooms"] });
   const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/events"] });
 
-  // Derive available dates from events
+  // Derive available dates from events and panels
   const availableDates = useMemo(() => {
-    const dates = Array.from(new Set(events.map((e) => e.date))).sort();
-    return dates;
-  }, [events]);
+    const eventDates = events.map((e) => e.date);
+    const panelDates = panels.map((p) => p.date).filter((d): d is string => !!d);
+    return Array.from(new Set([...eventDates, ...panelDates])).sort();
+  }, [events, panels]);
 
   // Set default date to first available if not set
   useEffect(() => {
@@ -88,11 +89,18 @@ export default function Home() {
     return Array.from(new Set(d)).sort();
   }, [rooms]);
 
-  // Filter panels to only those with events on the current date, sorted by earliest event
+  // Filter panels to those with events or own schedule on the current date, sorted by earliest time
   const filteredPanels = useMemo(() => {
     const dayEvents = events.filter((e) => e.date === currentDate);
     const panelIdsWithEvents = new Set(dayEvents.map((e) => e.panelId));
     const earliestByPanel = new Map<string, number>();
+    // Consider panel's own start time
+    for (const p of panels) {
+      if (p.startTime && p.date === currentDate) {
+        earliestByPanel.set(p.id, timeToMinutes(p.startTime));
+      }
+    }
+    // Consider linked event start times
     for (const e of dayEvents) {
       if (!e.panelId) continue;
       const mins = timeToMinutes(e.startTime);
@@ -100,23 +108,31 @@ export default function Home() {
       if (prev === undefined || mins < prev) earliestByPanel.set(e.panelId, mins);
     }
     return panels
-      .filter((p) => panelIdsWithEvents.has(p.id))
+      .filter((p) => panelIdsWithEvents.has(p.id) || p.date === currentDate)
       .sort((a, b) => (earliestByPanel.get(a.id) ?? Infinity) - (earliestByPanel.get(b.id) ?? Infinity));
   }, [panels, events, currentDate]);
 
-  // Filter rooms by district, sorted by earliest event
+  // Filter rooms by district, sorted by earliest event or panel time
   const filteredRooms = useMemo(() => {
     const base = districtFilter ? rooms.filter((r) => r.district === districtFilter) : rooms;
     const dayEvents = events.filter((e) => e.date === currentDate);
     const earliestByRoom = new Map<string, number>();
+    // From events
     for (const e of dayEvents) {
       if (!e.roomId) continue;
       const mins = timeToMinutes(e.startTime);
       const prev = earliestByRoom.get(e.roomId);
       if (prev === undefined || mins < prev) earliestByRoom.set(e.roomId, mins);
     }
+    // From panels
+    for (const p of panels) {
+      if (!p.roomId || !p.startTime || p.date !== currentDate) continue;
+      const mins = timeToMinutes(p.startTime);
+      const prev = earliestByRoom.get(p.roomId);
+      if (prev === undefined || mins < prev) earliestByRoom.set(p.roomId, mins);
+    }
     return [...base].sort((a, b) => (earliestByRoom.get(a.id) ?? Infinity) - (earliestByRoom.get(b.id) ?? Infinity));
-  }, [rooms, events, currentDate, districtFilter]);
+  }, [rooms, panels, events, currentDate, districtFilter]);
 
   return (
     <div className="flex flex-col h-screen bg-background print-calendar-container">

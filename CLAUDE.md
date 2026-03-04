@@ -39,10 +39,11 @@ No test framework is configured.
 ### Database
 
 - PostgreSQL via Neon serverless (HTTP mode)
-- Three tables: `panels`, `rooms`, `events`
-  - `panels`: id (uuid PK), panel_name (text)
+- Three tables: `rooms`, `panels`, `events` (defined in this order due to FK dependencies)
   - `rooms`: id (uuid PK), room_name (text), district (text, nullable)
+  - `panels`: id (uuid PK), panel_name (text), date (text, nullable), start_time (text, nullable), end_time (text, nullable), room_id (FK → rooms, cascade, nullable)
   - `events`: id (uuid PK), title (text), event_type (text), date (text, YYYY-MM-DD), start_time (text, HH:MM), end_time (text, HH:MM), panel_id (FK → panels, cascade, nullable), room_id (FK → rooms, cascade, nullable)
+- Panels carry their own schedule data (date, time, room) — no duplicate "panel" event in the events table
 - Requires `DATABASE_URL` env var
 
 ### API Endpoints
@@ -57,10 +58,47 @@ No test framework is configured.
 - Endpoint: `POST /api/sync/airtable` (destructive — clears all data then reloads)
 - Requires env vars: `AIRTABLE_PERSONAL_ACCESS_TOKEN`, `AIRTABLE_BASE_ID`
 - Airtable tables: "Panels", "Rooms", "Events" with "Grid view"
-- Sync order: clearAll → Panels → Rooms → Events
+- Sync order: clearAll → Rooms → Panels → Events (rooms first due to panels.roomId FK)
+- Delete order: events → panels → rooms (reverse of insert, respects FK constraints)
 - Builds ID maps (Airtable record ID → Postgres UUID) for foreign key resolution
 - Linked record fields (Panel, Room) return arrays — first element is extracted
 - Times stored as plain strings (HH:MM format), dates as YYYY-MM-DD
+
+### Airtable Field Mapping
+
+Airtable field names are **hardcoded strings** in `server/routes.ts`. If a name changes in Airtable, it must change in the sync code too, or the field will silently return `null`.
+
+| Airtable Table | Airtable Field | Postgres Column | Notes |
+|---|---|---|---|
+| Rooms | "Room Name" | room_name | Falls back to "Unnamed Room" |
+| Rooms | "District" | district | Nullable |
+| Panels | "Panel Name" | panel_name | Falls back to "Unnamed Panel" |
+| Panels | "Date" | date | Nullable, YYYY-MM-DD |
+| Panels | "Start Time" | start_time | Nullable, HH:MM |
+| Panels | "End Time" | end_time | Nullable, HH:MM |
+| Panels | "Room" | room_id | Linked record → FK |
+| Events | "Title" | title | Falls back to "Untitled Event" |
+| Events | "Event Type" | event_type | Nullable |
+| Events | "Date" | date | Required — skipped if missing |
+| Events | "Start Time" | start_time | Required — skipped if missing |
+| Events | "End Time" | end_time | Required — skipped if missing |
+| Events | "Panel" | panel_id | Linked record → FK |
+| Events | "Room" | room_id | Linked record → FK |
+
+### Changing the Airtable Schema
+
+**Safe — no code changes needed (just re-sync):**
+- Add, edit, or delete rows (records)
+- Change cell values
+
+**Requires code changes:**
+- **Rename a column** — Update the `record.get("...")` string in `server/routes.ts`
+- **Add a column** — Add to `shared/schema.ts` → `npm run db:push` → add `record.get()` in `routes.ts` → update frontend
+- **Remove a column** — Remove from `schema.ts` → `db:push` → remove from `routes.ts` → remove frontend references
+- **Change a field type** — Update Drizzle column type in `schema.ts` → `db:push` → update type casting in `routes.ts`
+- **Add/remove a table** — Full pipeline: schema → db:push → storage interface → sync block → API endpoint → frontend
+
+**After any code change:** `npm run check` → `npm run build:api` → commit `api/index.js`
 
 ### Frontend
 
@@ -68,7 +106,8 @@ No test framework is configured.
 - UI components from shadcn/ui (New York style) built on Radix UI primitives, in `client/src/components/ui/`.
 - `client/src/components/examples/` contains reference implementations of the old components.
 - Two grid views: CalendarGrid (panels as columns) and RoomsGrid (rooms as columns)
-- Calendar grid displays 8 AM–10 PM time slots
+- Both grids use `TimeBlock` (defined in `calendar-utils.ts`) as a unified type for rendering panels and events as positioned time blocks. Converters: `panelToTimeBlock()`, `eventToTimeBlock()`.
+- Calendar grid displays 9 AM–9 PM time slots
 - Filtering: date picker, grid mode toggle (Panels/Rooms), district filter (rooms mode only)
 - Filters persisted in localStorage and URL query params (`?mode=panels&date=2025-07-24`)
 - Print button triggers `window.print()` with clean print CSS

@@ -6,6 +6,9 @@ import {
   formatTime,
   getColor,
   layoutEvents,
+  panelToTimeBlock,
+  eventToTimeBlock,
+  type TimeBlock,
 } from "@/lib/calendar-utils";
 
 interface RoomsGridProps {
@@ -22,8 +25,20 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
 
   const panelMap = new Map(panels.map((p) => [p.id, p]));
 
-  const getEventsForRoom = (roomId: string) =>
-    dayEvents.filter((e) => e.roomId === roomId);
+  const getBlocksForRoom = (roomId: string): TimeBlock[] => {
+    const blocks: TimeBlock[] = [];
+    for (const panel of panels) {
+      const pb = panelToTimeBlock(panel);
+      if (pb && pb.roomId === roomId && pb.date === currentDate) {
+        blocks.push(pb);
+      }
+    }
+    const roomEvents = dayEvents
+      .filter((e) => e.roomId === roomId)
+      .map(eventToTimeBlock);
+    blocks.push(...roomEvents);
+    return blocks;
+  };
 
   return (
     <div className="flex-1 overflow-auto print-calendar-grid">
@@ -67,8 +82,8 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
 
           {/* Room columns */}
           {rooms.map((room) => {
-            const roomEvents = getEventsForRoom(room.id);
-            const laid = layoutEvents(roomEvents);
+            const blocks = getBlocksForRoom(room.id);
+            const laid = layoutEvents(blocks);
             return (
               <div key={room.id} className="border-r relative">
                 {/* Hour grid lines */}
@@ -78,11 +93,11 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
 
                 {/* Event blocks */}
                 {laid.map((item) => {
-                  const color = getColor(item.event);
-                  const panel = item.event.panelId ? panelMap.get(item.event.panelId) : null;
+                  const color = getColor(item.block);
+                  const panel = item.block.panelId ? panelMap.get(item.block.panelId) : null;
                   return (
                     <div
-                      key={item.event.id}
+                      key={item.block.id}
                       className="absolute rounded px-2 py-1 text-xs overflow-hidden print-event avoid-page-break"
                       style={{
                         top: item.top,
@@ -94,12 +109,12 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
                       }}
                     >
                       <div className="font-medium text-white truncate print:text-black">
-                        {item.event.title}
+                        {item.block.title}
                       </div>
                       <div className="text-white/80 text-[10px] print:text-gray-700">
-                        {formatTime(item.event.startTime)} – {formatTime(item.event.endTime)}
+                        {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
                       </div>
-                      {panel && (
+                      {item.block.source === "event" && panel && (
                         <div className="text-white/70 text-[10px] truncate print:text-gray-600">
                           {panel.panelName}
                         </div>

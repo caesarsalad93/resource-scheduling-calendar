@@ -6,6 +6,9 @@ import {
   formatTime,
   getColor,
   layoutEvents,
+  panelToTimeBlock,
+  eventToTimeBlock,
+  type TimeBlock,
 } from "@/lib/calendar-utils";
 
 interface CalendarGridProps {
@@ -19,8 +22,18 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
 
   const dayEvents = events.filter((e) => e.date === currentDate);
 
-  const getEventsForPanel = (panelId: string) =>
-    dayEvents.filter((e) => e.panelId === panelId);
+  const getBlocksForPanel = (panel: Panel): TimeBlock[] => {
+    const blocks: TimeBlock[] = [];
+    const panelBlock = panelToTimeBlock(panel);
+    if (panelBlock && panelBlock.date === currentDate) {
+      blocks.push(panelBlock);
+    }
+    const panelEvents = dayEvents
+      .filter((e) => e.panelId === panel.id)
+      .map(eventToTimeBlock);
+    blocks.push(...panelEvents);
+    return blocks;
+  };
 
   return (
     <div className="flex-1 overflow-auto print-calendar-grid">
@@ -61,8 +74,8 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
 
           {/* Panel columns */}
           {panels.map((panel) => {
-            const panelEvents = getEventsForPanel(panel.id);
-            const laid = layoutEvents(panelEvents);
+            const blocks = getBlocksForPanel(panel);
+            const laid = layoutEvents(blocks);
             return (
               <div key={panel.id} className="border-r relative">
                 {/* Hour grid lines */}
@@ -72,10 +85,10 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
 
                 {/* Event blocks */}
                 {laid.map((item) => {
-                  const color = getColor(item.event);
+                  const color = getColor(item.block);
                   return (
                     <div
-                      key={item.event.id}
+                      key={item.block.id}
                       className="absolute rounded px-2 py-1 text-xs overflow-hidden print-event avoid-page-break"
                       style={{
                         top: item.top,
@@ -87,14 +100,14 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
                       }}
                     >
                       <div className="font-medium text-white truncate print:text-black">
-                        {item.event.title}
+                        {item.block.title}
                       </div>
                       <div className="text-white/80 text-[10px] print:text-gray-700">
-                        {formatTime(item.event.startTime)} – {formatTime(item.event.endTime)}
+                        {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
                       </div>
-                      {item.event.eventType && (
+                      {item.block.eventType && (
                         <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {item.event.eventType}
+                          {item.block.eventType}
                         </div>
                       )}
                     </div>

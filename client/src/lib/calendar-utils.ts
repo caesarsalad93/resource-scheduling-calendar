@@ -1,4 +1,4 @@
-import type { Event } from "@shared/schema";
+import type { Event, Panel } from "@shared/schema";
 
 export const EVENT_TYPE_COLORS: Record<string, string> = {
   "Panel Room": "#3b82f6",
@@ -28,12 +28,55 @@ export function formatTime(time: string): string {
   return m === 0 ? `${hour12} ${ampm}` : `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
-export function getColor(event: Event): string {
-  return EVENT_TYPE_COLORS[event.eventType || ""] || "#6b7280";
+// --- TimeBlock: unified type for rendering both panels and events on grids ---
+
+export interface TimeBlock {
+  id: string;
+  title: string;
+  eventType: string | null;
+  startTime: string;
+  endTime: string;
+  panelId: string | null;
+  roomId: string | null;
+  date: string;
+  source: "panel" | "event";
 }
 
-export interface LayoutEvent {
-  event: Event;
+export function panelToTimeBlock(panel: Panel): TimeBlock | null {
+  if (!panel.date || !panel.startTime || !panel.endTime) return null;
+  return {
+    id: panel.id,
+    title: panel.panelName,
+    eventType: "Panel Room",
+    startTime: panel.startTime,
+    endTime: panel.endTime,
+    panelId: panel.id,
+    roomId: panel.roomId,
+    date: panel.date,
+    source: "panel",
+  };
+}
+
+export function eventToTimeBlock(event: Event): TimeBlock {
+  return {
+    id: event.id,
+    title: event.title,
+    eventType: event.eventType,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    panelId: event.panelId,
+    roomId: event.roomId,
+    date: event.date,
+    source: "event",
+  };
+}
+
+export function getColor(block: { eventType: string | null }): string {
+  return EVENT_TYPE_COLORS[block.eventType || ""] || "#6b7280";
+}
+
+export interface LayoutBlock {
+  block: TimeBlock;
   top: string;
   height: string;
   left: string;
@@ -42,14 +85,14 @@ export interface LayoutEvent {
 
 const MIN_HEIGHT_MINUTES = 10;
 
-export function layoutEvents(events: Event[]): LayoutEvent[] {
-  if (events.length === 0) return [];
+export function layoutEvents(blocks: TimeBlock[]): LayoutBlock[] {
+  if (blocks.length === 0) return [];
 
   const gridStart = START_HOUR * 60;
   const gridDuration = TOTAL_SLOTS * SLOT_MINUTES;
 
   // Sort by start time ASC, then duration DESC (longer events first for ties)
-  const sorted = [...events].sort((a, b) => {
+  const sorted = [...blocks].sort((a, b) => {
     const aStart = timeToMinutes(a.startTime);
     const bStart = timeToMinutes(b.startTime);
     if (aStart !== bStart) return aStart - bStart;
@@ -59,15 +102,15 @@ export function layoutEvents(events: Event[]): LayoutEvent[] {
   });
 
   interface Interval {
-    event: Event;
+    block: TimeBlock;
     start: number;
     end: number;
   }
 
-  const intervals: Interval[] = sorted.map((event) => {
-    const start = timeToMinutes(event.startTime);
-    const end = Math.max(timeToMinutes(event.endTime), start + MIN_HEIGHT_MINUTES);
-    return { event, start, end };
+  const intervals: Interval[] = sorted.map((block) => {
+    const start = timeToMinutes(block.startTime);
+    const end = Math.max(timeToMinutes(block.endTime), start + MIN_HEIGHT_MINUTES);
+    return { block, start, end };
   });
 
   // Group overlapping events using sweep-line
@@ -90,10 +133,9 @@ export function layoutEvents(events: Event[]): LayoutEvent[] {
   }
 
   // Assign column indices within each group, then compute CSS
-  const result: LayoutEvent[] = [];
+  const result: LayoutBlock[] = [];
 
   for (const group of groups) {
-    // Each sub-column tracks the end time of its last assigned event
     const columnEnds: number[] = [];
     const colAssignments: number[] = [];
 
@@ -128,7 +170,7 @@ export function layoutEvents(events: Event[]): LayoutEvent[] {
       const leftPct = colIndex * widthPct;
 
       result.push({
-        event: interval.event,
+        block: interval.block,
         top: `${topPct}%`,
         height: `${heightPct}%`,
         left: `calc(${leftPct}% + 1px)`,

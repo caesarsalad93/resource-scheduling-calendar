@@ -20,14 +20,18 @@ __export(schema_exports, {
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-var panels = pgTable("panels", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  panelName: text("panel_name").notNull()
-});
 var rooms = pgTable("rooms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   roomName: text("room_name").notNull(),
   district: text("district")
+});
+var panels = pgTable("panels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  panelName: text("panel_name").notNull(),
+  date: text("date"),
+  startTime: text("start_time"),
+  endTime: text("end_time"),
+  roomId: varchar("room_id").references(() => rooms.id, { onDelete: "cascade" })
 });
 var events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -39,8 +43,8 @@ var events = pgTable("events", {
   panelId: varchar("panel_id").references(() => panels.id, { onDelete: "cascade" }),
   roomId: varchar("room_id").references(() => rooms.id, { onDelete: "cascade" })
 });
-var insertPanelSchema = createInsertSchema(panels).omit({ id: true });
 var insertRoomSchema = createInsertSchema(rooms).omit({ id: true });
+var insertPanelSchema = createInsertSchema(panels).omit({ id: true });
 var insertEventSchema = createInsertSchema(events).omit({ id: true });
 
 // server/db.ts
@@ -84,8 +88,8 @@ var DbStorage = class {
   }
   async clearAll() {
     await db.delete(events);
-    await db.delete(rooms);
     await db.delete(panels);
+    await db.delete(rooms);
   }
 };
 var storage = new DbStorage();
@@ -135,23 +139,6 @@ function registerRoutes(app2) {
       }
       const base = new Airtable({ apiKey }).base(baseId);
       await storage.clearAll();
-      const panelRecords = [];
-      await base("Panels").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
-        for (const record of records) {
-          panelRecords.push({
-            airtableId: record.id,
-            panelName: record.get("Panel Name") || "Unnamed Panel"
-          });
-        }
-        fetchNextPage();
-      });
-      const insertedPanels = await storage.insertPanels(
-        panelRecords.map((p) => ({ panelName: p.panelName }))
-      );
-      const panelsMap = {};
-      panelRecords.forEach((rec, i) => {
-        panelsMap[rec.airtableId] = insertedPanels[i].id;
-      });
       const roomRecords = [];
       await base("Rooms").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
         for (const record of records) {
@@ -169,6 +156,34 @@ function registerRoutes(app2) {
       const roomsMap = {};
       roomRecords.forEach((rec, i) => {
         roomsMap[rec.airtableId] = insertedRooms[i].id;
+      });
+      const panelRecords = [];
+      await base("Panels").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
+        for (const record of records) {
+          const roomLink = record.get("Room");
+          panelRecords.push({
+            airtableId: record.id,
+            panelName: record.get("Panel Name") || "Unnamed Panel",
+            date: record.get("Date") || null,
+            startTime: record.get("Start Time") || null,
+            endTime: record.get("End Time") || null,
+            airtableRoomId: roomLink?.[0] || null
+          });
+        }
+        fetchNextPage();
+      });
+      const insertedPanels = await storage.insertPanels(
+        panelRecords.map((p) => ({
+          panelName: p.panelName,
+          date: p.date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          roomId: p.airtableRoomId ? roomsMap[p.airtableRoomId] || null : null
+        }))
+      );
+      const panelsMap = {};
+      panelRecords.forEach((rec, i) => {
+        panelsMap[rec.airtableId] = insertedPanels[i].id;
       });
       const eventData = [];
       await base("Events").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {

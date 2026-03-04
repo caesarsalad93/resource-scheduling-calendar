@@ -57,8 +57,8 @@ export class DbStorage implements IStorage {
 
   async clearAll(): Promise<void> {
     await db.delete(events);
-    await db.delete(rooms);
     await db.delete(panels);
+    await db.delete(rooms);
   }
 }
 
