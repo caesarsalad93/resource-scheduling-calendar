@@ -97,6 +97,28 @@ var storage = new DbStorage();
 // server/routes.ts
 import Airtable from "airtable";
 function registerRoutes(app2) {
+  app2.post("/api/auth/verify", (req, res) => {
+    const sitePassword = process.env.SITE_PASSWORD;
+    if (!sitePassword) {
+      return res.json({ authenticated: true });
+    }
+    const { password } = req.body || {};
+    if (password === sitePassword) {
+      return res.json({ authenticated: true });
+    }
+    return res.status(401).json({ error: "Invalid password" });
+  });
+  app2.use("/api", (req, res, next) => {
+    const sitePassword = process.env.SITE_PASSWORD;
+    if (!sitePassword) {
+      return next();
+    }
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader === `Bearer ${sitePassword}`) {
+      return next();
+    }
+    return res.status(401).json({ error: "Unauthorized" });
+  });
   app2.get("/api/panels", async (_req, res) => {
     try {
       const panels2 = await storage.getPanels();
