@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, addDays } from "date-fns";
+import { EVENT_TYPE_COLORS } from "@/lib/calendar-utils";
 
 type GridMode = "panels" | "rooms";
 
@@ -145,6 +146,19 @@ export function CalendarToolbar({
             Print
           </Button>
         </div>
+      </div>
+
+      {/* Color key */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {Object.entries(EVENT_TYPE_COLORS).map(([label, color]) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-xs text-muted-foreground">{label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

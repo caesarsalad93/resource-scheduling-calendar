@@ -7,7 +7,7 @@ import { RoomsGrid } from "@/components/RoomsGrid";
 import { CalendarGridSkeleton } from "@/components/CalendarGridSkeleton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { timeToMinutes } from "@/lib/calendar-utils";
-import type { Panel, Room, Event } from "@shared/schema";
+import type { Panel, Room, Event, Volunteer, VolunteerPanel } from "@shared/schema";
 
 const STORAGE_KEY = "calendar-filters";
 
@@ -47,6 +47,8 @@ export default function Home() {
   const { data: panels = [], isLoading: panelsLoading } = useQuery<Panel[]>({ queryKey: ["/api/panels"] });
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({ queryKey: ["/api/rooms"] });
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({ queryKey: ["/api/events"] });
+  const { data: volunteers = [] } = useQuery<Volunteer[]>({ queryKey: ["/api/volunteers"] });
+  const { data: volunteerPanels = [] } = useQuery<VolunteerPanel[]>({ queryKey: ["/api/volunteer-panels"] });
   const isLoading = panelsLoading || roomsLoading || eventsLoading;
 
   // Derive available dates from events and panels
@@ -170,9 +172,9 @@ export default function Home() {
       {isLoading ? (
         <CalendarGridSkeleton />
       ) : gridMode === "panels" ? (
-        <CalendarGrid panels={filteredPanels} events={events} currentDate={currentDate} />
+        <CalendarGrid panels={filteredPanels} rooms={rooms} events={events} volunteers={volunteers} volunteerPanels={volunteerPanels} currentDate={currentDate} />
       ) : (
-        <RoomsGrid rooms={filteredRooms} panels={panels} events={events} currentDate={currentDate} />
+        <RoomsGrid rooms={filteredRooms} allRooms={rooms} panels={panels} events={events} currentDate={currentDate} />
       )}
     </div>
   );

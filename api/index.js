@@ -14,8 +14,12 @@ __export(schema_exports, {
   insertEventSchema: () => insertEventSchema,
   insertPanelSchema: () => insertPanelSchema,
   insertRoomSchema: () => insertRoomSchema,
+  insertVolunteerPanelSchema: () => insertVolunteerPanelSchema,
+  insertVolunteerSchema: () => insertVolunteerSchema,
   panels: () => panels,
-  rooms: () => rooms
+  rooms: () => rooms,
+  volunteerPanels: () => volunteerPanels,
+  volunteers: () => volunteers
 });
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar } from "drizzle-orm/pg-core";
@@ -23,7 +27,8 @@ import { createInsertSchema } from "drizzle-zod";
 var rooms = pgTable("rooms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   roomName: text("room_name").notNull(),
-  district: text("district")
+  district: text("district"),
+  roomType: text("room_type")
 });
 var panels = pgTable("panels", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -43,9 +48,20 @@ var events = pgTable("events", {
   panelId: varchar("panel_id").references(() => panels.id, { onDelete: "cascade" }),
   roomId: varchar("room_id").references(() => rooms.id, { onDelete: "cascade" })
 });
+var volunteers = pgTable("volunteers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull()
+});
+var volunteerPanels = pgTable("volunteer_panels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  volunteerId: varchar("volunteer_id").references(() => volunteers.id, { onDelete: "cascade" }).notNull(),
+  panelId: varchar("panel_id").references(() => panels.id, { onDelete: "cascade" }).notNull()
+});
 var insertRoomSchema = createInsertSchema(rooms).omit({ id: true });
 var insertPanelSchema = createInsertSchema(panels).omit({ id: true });
 var insertEventSchema = createInsertSchema(events).omit({ id: true });
+var insertVolunteerSchema = createInsertSchema(volunteers).omit({ id: true });
+var insertVolunteerPanelSchema = createInsertSchema(volunteerPanels).omit({ id: true });
 
 // server/db.ts
 import { neon } from "@neondatabase/serverless";
@@ -74,6 +90,12 @@ var DbStorage = class {
   async getEventsByRoom(roomId) {
     return await db.select().from(events).where(eq(events.roomId, roomId));
   }
+  async getVolunteers() {
+    return await db.select().from(volunteers);
+  }
+  async getVolunteerPanels() {
+    return await db.select().from(volunteerPanels);
+  }
   async insertPanels(data) {
     if (data.length === 0) return [];
     return await db.insert(panels).values(data).returning();
@@ -86,7 +108,17 @@ var DbStorage = class {
     if (data.length === 0) return [];
     return await db.insert(events).values(data).returning();
   }
+  async insertVolunteers(data) {
+    if (data.length === 0) return [];
+    return await db.insert(volunteers).values(data).returning();
+  }
+  async insertVolunteerPanels(data) {
+    if (data.length === 0) return [];
+    return await db.insert(volunteerPanels).values(data).returning();
+  }
   async clearAll() {
+    await db.delete(volunteerPanels);
+    await db.delete(volunteers);
     await db.delete(events);
     await db.delete(panels);
     await db.delete(rooms);
@@ -152,6 +184,22 @@ function registerRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch events" });
     }
   });
+  app2.get("/api/volunteers", async (_req, res) => {
+    try {
+      const volunteers2 = await storage.getVolunteers();
+      res.json(volunteers2);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch volunteers" });
+    }
+  });
+  app2.get("/api/volunteer-panels", async (_req, res) => {
+    try {
+      const vp = await storage.getVolunteerPanels();
+      res.json(vp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch volunteer-panels" });
+    }
+  });
   app2.post("/api/sync/airtable", async (_req, res) => {
     try {
       const apiKey = process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN;
@@ -166,14 +214,15 @@ function registerRoutes(app2) {
         for (const record of records) {
           roomRecords.push({
             airtableId: record.id,
-            roomName: record.get("Room Name") || "Unnamed Room",
-            district: record.get("District") || null
+            roomName: (record.get("Room Name") || "Unnamed Room").trim(),
+            district: (record.get("District") || "").trim() || null,
+            roomType: (record.get("Room Type") || "").trim() || null
           });
         }
         fetchNextPage();
       });
       const insertedRooms = await storage.insertRooms(
-        roomRecords.map((r) => ({ roomName: r.roomName, district: r.district }))
+        roomRecords.map((r) => ({ roomName: r.roomName, district: r.district, roomType: r.roomType }))
       );
       const roomsMap = {};
       roomRecords.forEach((rec, i) => {
@@ -185,10 +234,10 @@ function registerRoutes(app2) {
           const roomLink = record.get("Room");
           panelRecords.push({
             airtableId: record.id,
-            panelName: record.get("Panel Name") || "Unnamed Panel",
-            date: record.get("Date") || null,
-            startTime: record.get("Start Time") || null,
-            endTime: record.get("End Time") || null,
+            panelName: (record.get("Panel Name") || "Unnamed Panel").trim(),
+            date: (record.get("Date") || "").trim() || null,
+            startTime: (record.get("Start Time") || "").trim() || null,
+            endTime: (record.get("End Time") || "").trim() || null,
             airtableRoomId: roomLink?.[0] || null
           });
         }
@@ -214,11 +263,11 @@ function registerRoutes(app2) {
           const roomLink = record.get("Room");
           const airtablePanelId = panelLink?.[0] || null;
           const airtableRoomId = roomLink?.[0] || null;
-          const title = record.get("Title") || "Untitled Event";
-          const eventType = record.get("Event Type") || null;
-          const date = record.get("Date") || "";
-          const startTime = record.get("Start Time") || "";
-          const endTime = record.get("End Time") || "";
+          const title = (record.get("Title") || "Untitled Event").trim();
+          const eventType = (record.get("Event Type") || "").trim() || null;
+          const date = (record.get("Date") || "").trim();
+          const startTime = (record.get("Start Time") || "").trim();
+          const endTime = (record.get("End Time") || "").trim();
           if (!date || !startTime || !endTime) {
             console.warn(`Skipping event "${title}" - missing date/start/end`);
             return;
@@ -236,10 +285,40 @@ function registerRoutes(app2) {
         fetchNextPage();
       });
       const insertedEvents = await storage.insertEvents(eventData);
+      const volunteerRecords = [];
+      await base("Volunteers").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
+        for (const record of records) {
+          const panelLinks = record.get("Panel") || [];
+          const name = (record.get("Name") || "").trim();
+          if (!name) return;
+          volunteerRecords.push({
+            airtableId: record.id,
+            name,
+            airtablePanelIds: panelLinks
+          });
+        }
+        fetchNextPage();
+      });
+      const insertedVolunteers = await storage.insertVolunteers(
+        volunteerRecords.map((v) => ({ name: v.name }))
+      );
+      const vpData = [];
+      volunteerRecords.forEach((rec, i) => {
+        const volunteerId = insertedVolunteers[i].id;
+        for (const airtablePanelId of rec.airtablePanelIds) {
+          const panelId = panelsMap[airtablePanelId];
+          if (panelId) {
+            vpData.push({ volunteerId, panelId });
+          }
+        }
+      });
+      const insertedVP = await storage.insertVolunteerPanels(vpData);
       res.json({
         panels: insertedPanels.length,
         rooms: insertedRooms.length,
-        events: insertedEvents.length
+        events: insertedEvents.length,
+        volunteers: insertedVolunteers.length,
+        volunteerPanels: insertedVP.length
       });
     } catch (error) {
       console.error("Airtable sync error:", error);

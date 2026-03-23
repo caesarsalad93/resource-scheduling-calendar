@@ -1,5 +1,5 @@
 import { format, addHours, startOfDay } from "date-fns";
-import type { Panel, Event } from "@shared/schema";
+import type { Panel, Room, Event, Volunteer, VolunteerPanel } from "@shared/schema";
 import {
   START_HOUR,
   END_HOUR,
@@ -13,11 +13,25 @@ import {
 
 interface CalendarGridProps {
   panels: Panel[];
+  rooms: Room[];
   events: Event[];
+  volunteers: Volunteer[];
+  volunteerPanels: VolunteerPanel[];
   currentDate: string;
 }
 
-export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps) {
+export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanels, currentDate }: CalendarGridProps) {
+  // Build panelId → volunteer names lookup via join table
+  const volunteerMap = new Map(volunteers.map((v) => [v.id, v]));
+  const volunteerNamesByPanel = new Map<string, string[]>();
+  for (const vp of volunteerPanels) {
+    const vol = volunteerMap.get(vp.volunteerId);
+    if (!vol) continue;
+    const list = volunteerNamesByPanel.get(vp.panelId) || [];
+    list.push(vol.name);
+    volunteerNamesByPanel.set(vp.panelId, list);
+  }
+  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r.roomName]));
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
 
   const dayEvents = events.filter((e) => e.date === currentDate);
@@ -46,11 +60,19 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
           }}
         >
           <div className="p-3 border-r" />
-          {panels.map((panel) => (
-            <div key={panel.id} className="p-3 border-r">
-              <div className="font-medium text-sm truncate">{panel.panelName}</div>
-            </div>
-          ))}
+          {panels.map((panel) => {
+            const names = volunteerNamesByPanel.get(panel.id) || [];
+            return (
+              <div key={panel.id} className="p-3 border-r">
+                <div className="font-medium text-sm truncate">{panel.panelName}</div>
+                {names.length > 0 && (
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                    Volunteers: {names.join(", ")}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Time grid body */}
@@ -105,9 +127,9 @@ export function CalendarGrid({ panels, events, currentDate }: CalendarGridProps)
                       <div className="text-white/80 text-[10px] print:text-gray-700">
                         {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
                       </div>
-                      {item.block.eventType && (
+                      {item.block.roomId && roomMap[item.block.roomId] && (
                         <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {item.block.eventType}
+                          {roomMap[item.block.roomId]}
                         </div>
                       )}
                     </div>

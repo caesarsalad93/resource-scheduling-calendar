@@ -68,6 +68,24 @@ export function registerRoutes(app: Express): void {
     }
   });
 
+  app.get("/api/volunteers", async (_req, res) => {
+    try {
+      const volunteers = await storage.getVolunteers();
+      res.json(volunteers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch volunteers" });
+    }
+  });
+
+  app.get("/api/volunteer-panels", async (_req, res) => {
+    try {
+      const vp = await storage.getVolunteerPanels();
+      res.json(vp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch volunteer-panels" });
+    }
+  });
+
   app.post("/api/sync/airtable", async (_req, res) => {
     try {
       const apiKey = process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN;
@@ -83,22 +101,23 @@ export function registerRoutes(app: Express): void {
       await storage.clearAll();
 
       // Step 2: Fetch and insert Rooms (must come before Panels due to FK)
-      const roomRecords: { airtableId: string; roomName: string; district: string | null }[] = [];
+      const roomRecords: { airtableId: string; roomName: string; district: string | null; roomType: string | null }[] = [];
       await base("Rooms")
         .select({ view: "Grid view" })
         .eachPage((records, fetchNextPage) => {
           for (const record of records) {
             roomRecords.push({
               airtableId: record.id,
-              roomName: (record.get("Room Name") as string) || "Unnamed Room",
-              district: (record.get("District") as string) || null,
+              roomName: ((record.get("Room Name") as string) || "Unnamed Room").trim(),
+              district: ((record.get("District") as string) || "").trim() || null,
+              roomType: ((record.get("Room Type") as string) || "").trim() || null,
             });
           }
           fetchNextPage();
         });
 
       const insertedRooms = await storage.insertRooms(
-        roomRecords.map((r) => ({ roomName: r.roomName, district: r.district }))
+        roomRecords.map((r) => ({ roomName: r.roomName, district: r.district, roomType: r.roomType }))
       );
 
       const roomsMap: Record<string, string> = {};
@@ -122,10 +141,10 @@ export function registerRoutes(app: Express): void {
             const roomLink = record.get("Room") as string[] | undefined;
             panelRecords.push({
               airtableId: record.id,
-              panelName: (record.get("Panel Name") as string) || "Unnamed Panel",
-              date: (record.get("Date") as string) || null,
-              startTime: (record.get("Start Time") as string) || null,
-              endTime: (record.get("End Time") as string) || null,
+              panelName: ((record.get("Panel Name") as string) || "Unnamed Panel").trim(),
+              date: ((record.get("Date") as string) || "").trim() || null,
+              startTime: ((record.get("Start Time") as string) || "").trim() || null,
+              endTime: ((record.get("End Time") as string) || "").trim() || null,
               airtableRoomId: roomLink?.[0] || null,
             });
           }
@@ -168,11 +187,11 @@ export function registerRoutes(app: Express): void {
             const airtablePanelId = panelLink?.[0] || null;
             const airtableRoomId = roomLink?.[0] || null;
 
-            const title = (record.get("Title") as string) || "Untitled Event";
-            const eventType = (record.get("Event Type") as string) || null;
-            const date = (record.get("Date") as string) || "";
-            const startTime = (record.get("Start Time") as string) || "";
-            const endTime = (record.get("End Time") as string) || "";
+            const title = ((record.get("Title") as string) || "Untitled Event").trim();
+            const eventType = ((record.get("Event Type") as string) || "").trim() || null;
+            const date = ((record.get("Date") as string) || "").trim();
+            const startTime = ((record.get("Start Time") as string) || "").trim();
+            const endTime = ((record.get("End Time") as string) || "").trim();
 
             if (!date || !startTime || !endTime) {
               console.warn(`Skipping event "${title}" - missing date/start/end`);
@@ -194,10 +213,55 @@ export function registerRoutes(app: Express): void {
 
       const insertedEvents = await storage.insertEvents(eventData);
 
+      // Step 5: Fetch and insert Volunteers + join table
+      const volunteerRecords: {
+        airtableId: string;
+        name: string;
+        airtablePanelIds: string[];
+      }[] = [];
+
+      await base("Volunteers")
+        .select({ view: "Grid view" })
+        .eachPage((records, fetchNextPage) => {
+          for (const record of records) {
+            const panelLinks = (record.get("Panel") as string[] | undefined) || [];
+
+            const name = ((record.get("Name") as string) || "").trim();
+            if (!name) return;
+
+            volunteerRecords.push({
+              airtableId: record.id,
+              name,
+              airtablePanelIds: panelLinks,
+            });
+          }
+          fetchNextPage();
+        });
+
+      const insertedVolunteers = await storage.insertVolunteers(
+        volunteerRecords.map((v) => ({ name: v.name }))
+      );
+
+      // Build join table entries
+      const vpData: { volunteerId: string; panelId: string }[] = [];
+      volunteerRecords.forEach((rec, i) => {
+        const volunteerId = insertedVolunteers[i].id;
+        for (const airtablePanelId of rec.airtablePanelIds) {
+          const panelId = panelsMap[airtablePanelId];
+          if (panelId) {
+            vpData.push({ volunteerId, panelId });
+          }
+        }
+      });
+
+      const insertedVP = await storage.insertVolunteerPanels(vpData);
+
       res.json({
         panels: insertedPanels.length,
         rooms: insertedRooms.length,
         events: insertedEvents.length,
+        volunteers: insertedVolunteers.length,
+        volunteerPanels: insertedVP.length,
       });
     } catch (error) {
       console.error("Airtable sync error:", error);

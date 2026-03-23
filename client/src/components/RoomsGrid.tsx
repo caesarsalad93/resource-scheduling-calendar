@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { format, addHours, startOfDay } from "date-fns";
 import type { Room, Panel, Event } from "@shared/schema";
 import {
   START_HOUR,
   END_HOUR,
   formatTime,
+  minutesToTimeString,
+  timeToMinutes,
   getColor,
   layoutEvents,
   panelToTimeBlock,
@@ -13,17 +16,72 @@ import {
 
 interface RoomsGridProps {
   rooms: Room[];
+  allRooms: Room[];
   panels: Panel[];
   events: Event[];
   currentDate: string;
 }
 
-export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps) {
+export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: RoomsGridProps) {
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
 
   const dayEvents = events.filter((e) => e.date === currentDate);
 
   const panelMap = new Map(panels.map((p) => [p.id, p]));
+
+  // Compute holding room info per district represented in the visible rooms
+  const holdingInfo = useMemo(() => {
+    const districts = Array.from(new Set(rooms.map((r) => r.district).filter((d): d is string => !!d)));
+    const result = new Map<string, { holdingRoom: Room; open: string; close: string }>();
+
+    for (const district of districts) {
+      const holdingRoom = allRooms.find((r) => r.district === district && r.roomType?.toLowerCase() === "holding");
+      if (!holdingRoom) continue;
+
+      const districtRoomIds = new Set(
+        allRooms.filter((r) => r.district === district).map((r) => r.id),
+      );
+      const times: number[] = [];
+
+      for (const p of panels) {
+        if (p.roomId && districtRoomIds.has(p.roomId) && p.date === currentDate && p.startTime && p.endTime) {
+          times.push(timeToMinutes(p.startTime), timeToMinutes(p.endTime));
+        }
+      }
+      for (const e of dayEvents) {
+        if (e.roomId && districtRoomIds.has(e.roomId)) {
+          times.push(timeToMinutes(e.startTime), timeToMinutes(e.endTime));
+        }
+      }
+
+      if (times.length > 0) {
+        result.set(district, {
+          holdingRoom,
+          open: minutesToTimeString(Math.min(...times) - 90),
+          close: minutesToTimeString(Math.max(...times) + 30),
+        });
+      }
+    }
+
+    return result;
+  }, [rooms, allRooms, panels, dayEvents, currentDate]);
+
+  // Build district banner groups from visible rooms
+  const districtBanners = useMemo(() => {
+    const groups: { district: string | null; count: number }[] = [];
+    let currentDistrict: string | null | undefined = undefined;
+
+    for (const room of rooms) {
+      const d = room.district ?? null;
+      if (d === currentDistrict) {
+        groups[groups.length - 1].count++;
+      } else {
+        groups.push({ district: d, count: 1 });
+        currentDistrict = d;
+      }
+    }
+    return groups;
+  }, [rooms]);
 
   const getBlocksForRoom = (roomId: string): TimeBlock[] => {
     const blocks: TimeBlock[] = [];
@@ -40,33 +98,60 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
     return blocks;
   };
 
+  const gridCols = `var(--grid-time-col, 80px) repeat(${rooms.length}, minmax(var(--grid-col-min, 160px), 1fr))`;
+
   return (
     <div className="flex-1 overflow-auto print-calendar-grid">
       <div className="min-w-max">
-        {/* Header row */}
-        <div
-          className="grid border-b sticky top-0 bg-background z-10 print:static"
-          style={{
-            gridTemplateColumns: `var(--grid-time-col, 80px) repeat(${rooms.length}, minmax(var(--grid-col-min, 160px), 1fr))`,
-          }}
-        >
-          <div className="p-3 border-r" />
-          {rooms.map((room) => (
-            <div key={room.id} className="p-3 border-r">
-              <div className="font-medium text-sm truncate">{room.roomName}</div>
-              {room.district && (
-                <div className="text-xs text-muted-foreground">{room.district}</div>
-              )}
+        {/* Sticky header: holding room banner + room names */}
+        <div className="sticky top-0 bg-background z-10 print:static">
+          {/* District holding room banner */}
+          {districtBanners.some((g) => g.district && holdingInfo.has(g.district)) && (
+            <div
+              className="grid border-b"
+              style={{ gridTemplateColumns: gridCols }}
+            >
+              <div className="border-r" />
+              {districtBanners.map((group, i) => {
+                const info = group.district ? holdingInfo.get(group.district) : null;
+                return (
+                  <div
+                    key={`${group.district ?? "__none"}-${i}`}
+                    style={{ gridColumn: `span ${group.count}` }}
+                    className="px-3 py-1.5 border-r bg-muted/50 text-xs"
+                  >
+                    {info ? (
+                      <span className="font-medium">
+                        Holding: {info.holdingRoom.roomName} — {formatTime(info.open)} – {formatTime(info.close)}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
+
+          {/* Room name header row */}
+          <div
+            className="grid border-b"
+            style={{ gridTemplateColumns: gridCols }}
+          >
+            <div className="p-3 border-r" />
+            {rooms.map((room) => (
+              <div key={room.id} className="p-3 border-r">
+                <div className="font-medium text-sm truncate">{room.roomName}</div>
+                {room.district && (
+                  <div className="text-xs text-muted-foreground">{room.district}</div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Time grid body */}
         <div
           className="grid"
-          style={{
-            gridTemplateColumns: `var(--grid-time-col, 80px) repeat(${rooms.length}, minmax(var(--grid-col-min, 160px), 1fr))`,
-          }}
+          style={{ gridTemplateColumns: gridCols }}
         >
           {/* Time labels column */}
           <div className="border-r">
@@ -108,17 +193,12 @@ export function RoomsGrid({ rooms, panels, events, currentDate }: RoomsGridProps
                         opacity: 0.9,
                       }}
                     >
-                      <div className="font-medium text-white truncate print:text-black">
+                      <div className="font-medium text-white print:text-black leading-tight">
                         {item.block.title}
                       </div>
                       <div className="text-white/80 text-[10px] print:text-gray-700">
                         {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
                       </div>
-                      {item.block.source === "event" && panel && (
-                        <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {panel.panelName}
-                        </div>
-                      )}
                     </div>
                   );
                 })}

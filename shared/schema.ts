@@ -7,6 +7,7 @@ export const rooms = pgTable("rooms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   roomName: text("room_name").notNull(),
   district: text("district"),
+  roomType: text("room_type"),
 });
 
 export const panels = pgTable("panels", {
@@ -29,9 +30,22 @@ export const events = pgTable("events", {
   roomId: varchar("room_id").references(() => rooms.id, { onDelete: "cascade" }),
 });
 
+export const volunteers = pgTable("volunteers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+});
+
+export const volunteerPanels = pgTable("volunteer_panels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  volunteerId: varchar("volunteer_id").references(() => volunteers.id, { onDelete: "cascade" }).notNull(),
+  panelId: varchar("panel_id").references(() => panels.id, { onDelete: "cascade" }).notNull(),
+});
+
 export const insertRoomSchema = createInsertSchema(rooms).omit({ id: true });
 export const insertPanelSchema = createInsertSchema(panels).omit({ id: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true });
+export const insertVolunteerSchema = createInsertSchema(volunteers).omit({ id: true });
+export const insertVolunteerPanelSchema = createInsertSchema(volunteerPanels).omit({ id: true });
 
 export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
@@ -39,3 +53,7 @@ export type Panel = typeof panels.$inferSelect;
 export type InsertPanel = z.infer<typeof insertPanelSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Volunteer = typeof volunteers.$inferSelect;
+export type InsertVolunteer = z.infer<typeof insertVolunteerSchema>;
+export type VolunteerPanel = typeof volunteerPanels.$inferSelect;
+export type InsertVolunteerPanel = z.infer<typeof insertVolunteerPanelSchema>;

@@ -2,7 +2,9 @@ import {
   type Panel, type InsertPanel,
   type Room, type InsertRoom,
   type Event, type InsertEvent,
-  panels, rooms, events,
+  type Volunteer, type InsertVolunteer,
+  type VolunteerPanel, type InsertVolunteerPanel,
+  panels, rooms, events, volunteers, volunteerPanels,
 } from "../shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -13,9 +15,13 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventsByDate(date: string): Promise<Event[]>;
   getEventsByRoom(roomId: string): Promise<Event[]>;
+  getVolunteers(): Promise<Volunteer[]>;
+  getVolunteerPanels(): Promise<VolunteerPanel[]>;
   insertPanels(data: InsertPanel[]): Promise<Panel[]>;
   insertRooms(data: InsertRoom[]): Promise<Room[]>;
   insertEvents(data: InsertEvent[]): Promise<Event[]>;
+  insertVolunteers(data: InsertVolunteer[]): Promise<Volunteer[]>;
+  insertVolunteerPanels(data: InsertVolunteerPanel[]): Promise<VolunteerPanel[]>;
   clearAll(): Promise<void>;
 }
 
@@ -40,6 +46,14 @@ export class DbStorage implements IStorage {
     return await db.select().from(events).where(eq(events.roomId, roomId));
   }
 
+  async getVolunteers(): Promise<Volunteer[]> {
+    return await db.select().from(volunteers);
+  }
+
+  async getVolunteerPanels(): Promise<VolunteerPanel[]> {
+    return await db.select().from(volunteerPanels);
+  }
+
   async insertPanels(data: InsertPanel[]): Promise<Panel[]> {
     if (data.length === 0) return [];
     return await db.insert(panels).values(data).returning();
@@ -55,7 +69,19 @@ export class DbStorage implements IStorage {
     return await db.insert(events).values(data).returning();
   }
 
+  async insertVolunteers(data: InsertVolunteer[]): Promise<Volunteer[]> {
+    if (data.length === 0) return [];
+    return await db.insert(volunteers).values(data).returning();
+  }
+
+  async insertVolunteerPanels(data: InsertVolunteerPanel[]): Promise<VolunteerPanel[]> {
+    if (data.length === 0) return [];
+    return await db.insert(volunteerPanels).values(data).returning();
+  }
+
   async clearAll(): Promise<void> {
+    await db.delete(volunteerPanels);
+    await db.delete(volunteers);
     await db.delete(events);
     await db.delete(panels);
     await db.delete(rooms);

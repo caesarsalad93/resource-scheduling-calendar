@@ -21,6 +21,13 @@ export function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
+export function minutesToTimeString(minutes: number): string {
+  const clamped = Math.max(0, minutes);
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
 export function formatTime(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
