@@ -191,7 +191,8 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                         width: item.width,
                         backgroundColor: color,
                         opacity: 0.9,
-                      }}
+                        '--print-event-color': color,
+                      } as React.CSSProperties}
                     >
                       <div className="font-medium text-white print:text-black leading-tight">
                         {item.block.title}

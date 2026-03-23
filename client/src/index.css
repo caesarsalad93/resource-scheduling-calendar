@@ -423,13 +423,19 @@
     break-inside: avoid;
   }
 
-  /* Make event colors print-friendly */
+  /* Make event colors print-friendly: white bg with colored left border */
   .print-event {
-    border: 1px solid #333 !important;
+    background-color: white !important;
+    border: 1px solid #999 !important;
+    border-left: 4px solid var(--print-event-color, #333) !important;
     opacity: 1 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     color-adjust: exact;
+  }
+
+  .print-event * {
+    color: #000 !important;
   }
 
   /* Ensure borders are visible */
@@ -481,7 +487,7 @@
   }
 
   .print-calendar-grid .print-event .text-\[10px\] {
-    font-size: 5pt !important;
+    font-size: 6pt !important;
   }
 
   /* Reduce hour row height */
@@ -500,6 +506,12 @@
     text-overflow: unset !important;
     white-space: normal !important;
     word-break: break-word !important;
+  }
+
+  /* Compact header volunteer text */
+  .print-calendar-grid .sticky .text-xs {
+    font-size: 5.5pt !important;
+    line-height: 1.15 !important;
   }
 
   .print-calendar-grid .overflow-hidden {

@@ -6,7 +6,8 @@ import { CalendarGrid } from "@/components/CalendarGrid";
 import { RoomsGrid } from "@/components/RoomsGrid";
 import { CalendarGridSkeleton } from "@/components/CalendarGridSkeleton";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { timeToMinutes } from "@/lib/calendar-utils";
+import { timeToMinutes, EVENT_TYPE_COLORS } from "@/lib/calendar-utils";
+import { format } from "date-fns";
 import type { Panel, Room, Event, Volunteer, VolunteerPanel } from "@shared/schema";
 
 const STORAGE_KEY = "calendar-filters";
@@ -145,7 +146,20 @@ export default function Home() {
         <h1 className="text-2xl font-bold">
           {gridMode === "panels" ? "Panel Schedule" : "Room Schedule"}
         </h1>
-        <p className="text-sm text-gray-600">{currentDate}</p>
+        <p className="text-sm text-gray-600">
+          {currentDate ? format(new Date(currentDate + "T00:00:00"), "EEEE, MMMM d, yyyy") : ""}
+        </p>
+        <div className="flex items-center gap-4 flex-wrap mt-2">
+          {Object.entries(EVENT_TYPE_COLORS).map(([label, color]) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <div
+                className="w-2.5 h-2.5 rounded-sm shrink-0"
+                style={{ backgroundColor: color, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as React.CSSProperties}
+              />
+              <span className="text-xs text-gray-600">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Toolbar */}

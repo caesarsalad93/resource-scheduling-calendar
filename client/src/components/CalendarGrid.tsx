@@ -119,7 +119,8 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                         width: item.width,
                         backgroundColor: color,
                         opacity: 0.9,
-                      }}
+                        '--print-event-color': color,
+                      } as React.CSSProperties}
                     >
                       <div className="font-medium text-white truncate print:text-black">
                         {item.block.title}
