@@ -179,7 +179,8 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                 {/* Event blocks */}
                 {laid.map((item) => {
                   const color = getColor(item.block);
-                  const panel = item.block.panelId ? panelMap.get(item.block.panelId) : null;
+                  const duration = timeToMinutes(item.block.endTime) - timeToMinutes(item.block.startTime);
+                  const compact = duration <= 20;
                   return (
                     <div
                       key={item.block.id}
@@ -194,12 +195,20 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                         '--print-event-color': color,
                       } as React.CSSProperties}
                     >
-                      <div className="font-medium text-white print:text-black leading-tight">
-                        {item.block.title}
-                      </div>
-                      <div className="text-white/80 text-[10px] print:text-gray-700">
-                        {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
-                      </div>
+                      {compact ? (
+                        <div className="font-medium text-white truncate print:text-black">
+                          {item.block.title} · {formatTime(item.block.startTime)}–{formatTime(item.block.endTime)}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="font-medium text-white print:text-black leading-tight">
+                            {item.block.title}
+                          </div>
+                          <div className="text-white/80 text-[10px] print:text-gray-700">
+                            {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}

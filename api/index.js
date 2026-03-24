@@ -210,11 +210,17 @@ function registerRoutes(app2) {
       const base = new Airtable({ apiKey }).base(baseId);
       await storage.clearAll();
       const roomRecords = [];
+      const skipped = [];
       await base("Rooms").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
         for (const record of records) {
+          const roomName = (record.get("Room Name") || "").trim();
+          if (!roomName) {
+            skipped.push({ table: "Rooms", reason: `Empty row (record ${record.id})` });
+            continue;
+          }
           roomRecords.push({
             airtableId: record.id,
-            roomName: (record.get("Room Name") || "Unnamed Room").trim(),
+            roomName,
             district: (record.get("District") || "").trim() || null,
             roomType: (record.get("Room Type") || "").trim() || null
           });
@@ -231,10 +237,15 @@ function registerRoutes(app2) {
       const panelRecords = [];
       await base("Panels").select({ view: "Grid view" }).eachPage((records, fetchNextPage) => {
         for (const record of records) {
+          const panelName = (record.get("Panel Name") || "").trim();
+          if (!panelName) {
+            skipped.push({ table: "Panels", reason: `Empty row (record ${record.id})` });
+            continue;
+          }
           const roomLink = record.get("Room");
           panelRecords.push({
             airtableId: record.id,
-            panelName: (record.get("Panel Name") || "Unnamed Panel").trim(),
+            panelName,
             date: (record.get("Date") || "").trim() || null,
             startTime: (record.get("Start Time") || "").trim() || null,
             endTime: (record.get("End Time") || "").trim() || null,
@@ -269,8 +280,8 @@ function registerRoutes(app2) {
           const startTime = (record.get("Start Time") || "").trim();
           const endTime = (record.get("End Time") || "").trim();
           if (!date || !startTime || !endTime) {
-            console.warn(`Skipping event "${title}" - missing date/start/end`);
-            return;
+            skipped.push({ table: "Events", reason: `"${title}" missing date/start/end` });
+            continue;
           }
           eventData.push({
             title,
@@ -290,7 +301,10 @@ function registerRoutes(app2) {
         for (const record of records) {
           const panelLinks = record.get("Panel") || [];
           const name = (record.get("Name") || "").trim();
-          if (!name) return;
+          if (!name) {
+            skipped.push({ table: "Volunteers", reason: `Empty row (record ${record.id})` });
+            continue;
+          }
           volunteerRecords.push({
             airtableId: record.id,
             name,
@@ -318,7 +332,8 @@ function registerRoutes(app2) {
         rooms: insertedRooms.length,
         events: insertedEvents.length,
         volunteers: insertedVolunteers.length,
-        volunteerPanels: insertedVP.length
+        volunteerPanels: insertedVP.length,
+        skipped: skipped.length > 0 ? skipped : void 0
       });
     } catch (error) {
       console.error("Airtable sync error:", error);

@@ -8,6 +8,7 @@ import {
   layoutEvents,
   panelToTimeBlock,
   eventToTimeBlock,
+  timeToMinutes,
   type TimeBlock,
 } from "@/lib/calendar-utils";
 
@@ -108,6 +109,9 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                 {/* Event blocks */}
                 {laid.map((item) => {
                   const color = getColor(item.block);
+                  const duration = timeToMinutes(item.block.endTime) - timeToMinutes(item.block.startTime);
+                  const compact = duration <= 20;
+                  const roomName = item.block.roomId ? roomMap[item.block.roomId] : null;
                   return (
                     <div
                       key={item.block.id}
@@ -122,16 +126,24 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                         '--print-event-color': color,
                       } as React.CSSProperties}
                     >
-                      <div className="font-medium text-white truncate print:text-black">
-                        {item.block.title}
-                      </div>
-                      <div className="text-white/80 text-[10px] print:text-gray-700">
-                        {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
-                      </div>
-                      {item.block.roomId && roomMap[item.block.roomId] && (
-                        <div className="text-white/70 text-[10px] truncate print:text-gray-600">
-                          {roomMap[item.block.roomId]}
+                      {compact ? (
+                        <div className="font-medium text-white truncate print:text-black">
+                          {item.block.title} · {formatTime(item.block.startTime)}–{formatTime(item.block.endTime)}{roomName ? ` · ${roomName}` : ""}
                         </div>
+                      ) : (
+                        <>
+                          <div className="font-medium text-white truncate print:text-black">
+                            {item.block.title}
+                          </div>
+                          <div className="text-white/80 text-[10px] print:text-gray-700">
+                            {formatTime(item.block.startTime)} – {formatTime(item.block.endTime)}
+                          </div>
+                          {roomName && (
+                            <div className="text-white/70 text-[10px] truncate print:text-gray-600">
+                              {roomName}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   );

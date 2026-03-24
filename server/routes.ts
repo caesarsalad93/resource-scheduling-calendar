@@ -102,13 +102,19 @@ export function registerRoutes(app: Express): void {
 
       // Step 2: Fetch and insert Rooms (must come before Panels due to FK)
       const roomRecords: { airtableId: string; roomName: string; district: string | null; roomType: string | null }[] = [];
+      const skipped: { table: string; reason: string }[] = [];
       await base("Rooms")
         .select({ view: "Grid view" })
         .eachPage((records, fetchNextPage) => {
           for (const record of records) {
+            const roomName = ((record.get("Room Name") as string) || "").trim();
+            if (!roomName) {
+              skipped.push({ table: "Rooms", reason: `Empty row (record ${record.id})` });
+              continue;
+            }
             roomRecords.push({
               airtableId: record.id,
-              roomName: ((record.get("Room Name") as string) || "Unnamed Room").trim(),
+              roomName,
               district: ((record.get("District") as string) || "").trim() || null,
               roomType: ((record.get("Room Type") as string) || "").trim() || null,
             });
@@ -138,10 +144,15 @@ export function registerRoutes(app: Express): void {
         .select({ view: "Grid view" })
         .eachPage((records, fetchNextPage) => {
           for (const record of records) {
+            const panelName = ((record.get("Panel Name") as string) || "").trim();
+            if (!panelName) {
+              skipped.push({ table: "Panels", reason: `Empty row (record ${record.id})` });
+              continue;
+            }
             const roomLink = record.get("Room") as string[] | undefined;
             panelRecords.push({
               airtableId: record.id,
-              panelName: ((record.get("Panel Name") as string) || "Unnamed Panel").trim(),
+              panelName,
               date: ((record.get("Date") as string) || "").trim() || null,
               startTime: ((record.get("Start Time") as string) || "").trim() || null,
               endTime: ((record.get("End Time") as string) || "").trim() || null,
@@ -194,8 +205,8 @@ export function registerRoutes(app: Express): void {
             const endTime = ((record.get("End Time") as string) || "").trim();
 
             if (!date || !startTime || !endTime) {
-              console.warn(`Skipping event "${title}" - missing date/start/end`);
-              return;
+              skipped.push({ table: "Events", reason: `"${title}" missing date/start/end` });
+              continue;
             }
 
             eventData.push({
@@ -227,7 +238,10 @@ export function registerRoutes(app: Express): void {
             const panelLinks = (record.get("Panel") as string[] | undefined) || [];
 
             const name = ((record.get("Name") as string) || "").trim();
-            if (!name) return;
+            if (!name) {
+              skipped.push({ table: "Volunteers", reason: `Empty row (record ${record.id})` });
+              continue;
+            }
 
             volunteerRecords.push({
               airtableId: record.id,
@@ -262,6 +276,7 @@ export function registerRoutes(app: Express): void {
         events: insertedEvents.length,
         volunteers: insertedVolunteers.length,
         volunteerPanels: insertedVP.length,
+        skipped: skipped.length > 0 ? skipped : undefined,
       });
     } catch (error) {
       console.error("Airtable sync error:", error);
