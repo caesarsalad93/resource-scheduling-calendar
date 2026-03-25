@@ -2,6 +2,33 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import Airtable from "airtable";
 
+/** Normalize time strings to HH:MM 24-hour format. Handles "1:30 PM", "14:30", "2:00 pm", etc. */
+function normalizeTime(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+
+  // Match "H:MM AM/PM" or "HH:MM AM/PM"
+  const ampm = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = parseInt(ampm[2], 10);
+    const period = ampm[3].toUpperCase();
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  }
+
+  // Match "H:MM" or "HH:MM" (already 24-hour)
+  const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (mil) {
+    const h = parseInt(mil[1], 10);
+    const m = parseInt(mil[2], 10);
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
 export function registerRoutes(app: Express): void {
   // Auth verification endpoint (exempt from auth middleware)
   app.post("/api/auth/verify", (req, res) => {
@@ -154,8 +181,8 @@ export function registerRoutes(app: Express): void {
               airtableId: record.id,
               panelName,
               date: ((record.get("Date") as string) || "").trim() || null,
-              startTime: ((record.get("Start Time") as string) || "").trim() || null,
-              endTime: ((record.get("End Time") as string) || "").trim() || null,
+              startTime: normalizeTime((record.get("Start Time") as string) || ""),
+              endTime: normalizeTime((record.get("End Time") as string) || ""),
               airtableRoomId: roomLink?.[0] || null,
             });
           }
@@ -201,8 +228,8 @@ export function registerRoutes(app: Express): void {
             const title = ((record.get("Title") as string) || "Untitled Event").trim();
             const eventType = ((record.get("Event Type") as string) || "").trim() || null;
             const date = ((record.get("Date") as string) || "").trim();
-            const startTime = ((record.get("Start Time") as string) || "").trim();
-            const endTime = ((record.get("End Time") as string) || "").trim();
+            const startTime = normalizeTime((record.get("Start Time") as string) || "");
+            const endTime = normalizeTime((record.get("End Time") as string) || "");
 
             if (!date || !startTime || !endTime) {
               skipped.push({ table: "Events", reason: `"${title}" missing date/start/end` });

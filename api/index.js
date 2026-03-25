@@ -128,6 +128,26 @@ var storage = new DbStorage();
 
 // server/routes.ts
 import Airtable from "airtable";
+function normalizeTime(raw) {
+  const s = raw.trim();
+  if (!s) return null;
+  const ampm = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = parseInt(ampm[2], 10);
+    const period = ampm[3].toUpperCase();
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  }
+  const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (mil) {
+    const h = parseInt(mil[1], 10);
+    const m = parseInt(mil[2], 10);
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  }
+  return null;
+}
 function registerRoutes(app2) {
   app2.post("/api/auth/verify", (req, res) => {
     const sitePassword = process.env.SITE_PASSWORD;
@@ -247,8 +267,8 @@ function registerRoutes(app2) {
             airtableId: record.id,
             panelName,
             date: (record.get("Date") || "").trim() || null,
-            startTime: (record.get("Start Time") || "").trim() || null,
-            endTime: (record.get("End Time") || "").trim() || null,
+            startTime: normalizeTime(record.get("Start Time") || ""),
+            endTime: normalizeTime(record.get("End Time") || ""),
             airtableRoomId: roomLink?.[0] || null
           });
         }
@@ -277,8 +297,8 @@ function registerRoutes(app2) {
           const title = (record.get("Title") || "Untitled Event").trim();
           const eventType = (record.get("Event Type") || "").trim() || null;
           const date = (record.get("Date") || "").trim();
-          const startTime = (record.get("Start Time") || "").trim();
-          const endTime = (record.get("End Time") || "").trim();
+          const startTime = normalizeTime(record.get("Start Time") || "");
+          const endTime = normalizeTime(record.get("End Time") || "");
           if (!date || !startTime || !endTime) {
             skipped.push({ table: "Events", reason: `"${title}" missing date/start/end` });
             continue;
