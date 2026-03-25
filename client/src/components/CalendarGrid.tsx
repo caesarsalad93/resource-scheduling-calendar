@@ -9,6 +9,7 @@ import {
   panelToTimeBlock,
   eventToTimeBlock,
   timeToMinutes,
+  mergeShowFlowBlocks,
   type TimeBlock,
 } from "@/lib/calendar-utils";
 
@@ -97,7 +98,7 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
 
           {/* Panel columns */}
           {panels.map((panel) => {
-            const blocks = getBlocksForPanel(panel);
+            const blocks = mergeShowFlowBlocks(getBlocksForPanel(panel));
             const laid = layoutEvents(blocks);
             return (
               <div key={panel.id} className="border-r relative">
@@ -110,7 +111,7 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                 {laid.map((item) => {
                   const color = getColor(item.block);
                   const duration = timeToMinutes(item.block.endTime) - timeToMinutes(item.block.startTime);
-                  const compact = duration <= 20;
+                  const compact = duration <= 20 && !item.block.mergedItems;
                   const roomName = item.block.roomId ? roomMap[item.block.roomId] : null;
                   return (
                     <div
@@ -126,7 +127,16 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                         '--print-event-color': color,
                       } as React.CSSProperties}
                     >
-                      {compact ? (
+                      {item.block.mergedItems ? (
+                        <div className="text-white print:text-black">
+                          {item.block.mergedItems.map((mi, idx) => (
+                            <div key={idx} className="truncate leading-tight">
+                              <span className="text-white/70 print:text-gray-500 text-[10px]">{formatTime(mi.startTime)} – {formatTime(mi.endTime)}</span>{" "}
+                              <span className="font-medium">{mi.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : compact ? (
                         <div className="font-medium text-white truncate print:text-black">
                           {item.block.title} · {formatTime(item.block.startTime)}–{formatTime(item.block.endTime)}{roomName ? ` · ${roomName}` : ""}
                         </div>

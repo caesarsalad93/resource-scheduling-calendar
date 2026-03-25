@@ -37,6 +37,13 @@ export function formatTime(time: string): string {
 
 // --- TimeBlock: unified type for rendering both panels and events on grids ---
 
+export interface MergedItem {
+  title: string;
+  startTime: string;
+  endTime: string;
+  roomId: string | null;
+}
+
 export interface TimeBlock {
   id: string;
   title: string;
@@ -47,6 +54,7 @@ export interface TimeBlock {
   roomId: string | null;
   date: string;
   source: "panel" | "event";
+  mergedItems?: MergedItem[];
 }
 
 export function panelToTimeBlock(panel: Panel): TimeBlock | null {
@@ -80,6 +88,65 @@ export function eventToTimeBlock(event: Event): TimeBlock {
 
 export function getColor(block: { eventType: string | null }): string {
   return EVENT_TYPE_COLORS[block.eventType || ""] || "#6b7280";
+}
+
+/**
+ * Merge overlapping/adjacent Show Flow events into single combined blocks.
+ * Non-Show-Flow blocks pass through unchanged.
+ */
+export function mergeShowFlowBlocks(blocks: TimeBlock[]): TimeBlock[] {
+  const showFlow: TimeBlock[] = [];
+  const other: TimeBlock[] = [];
+
+  for (const b of blocks) {
+    if (b.eventType === "Show Flow" && b.source === "event") {
+      showFlow.push(b);
+    } else {
+      other.push(b);
+    }
+  }
+
+  if (showFlow.length <= 1) return blocks;
+
+  // Sort by start time
+  showFlow.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+  // Merge overlapping or adjacent (within 1 minute gap)
+  const merged: TimeBlock[] = [];
+  let current = showFlow[0];
+  let items: MergedItem[] = [{ title: current.title, startTime: current.startTime, endTime: current.endTime, roomId: current.roomId }];
+
+  for (let i = 1; i < showFlow.length; i++) {
+    const next = showFlow[i];
+    const currentEnd = timeToMinutes(current.endTime);
+    const nextStart = timeToMinutes(next.startTime);
+
+    if (nextStart <= currentEnd + 1) {
+      // Merge
+      items.push({ title: next.title, startTime: next.startTime, endTime: next.endTime, roomId: next.roomId });
+      if (timeToMinutes(next.endTime) > currentEnd) {
+        current = { ...current, endTime: next.endTime };
+      }
+    } else {
+      // Flush current group
+      if (items.length > 1) {
+        merged.push({ ...current, title: `Show Flow (${items.length} items)`, mergedItems: items });
+      } else {
+        merged.push(current);
+      }
+      current = next;
+      items = [{ title: next.title, startTime: next.startTime, endTime: next.endTime, roomId: next.roomId }];
+    }
+  }
+
+  // Flush last group
+  if (items.length > 1) {
+    merged.push({ ...current, title: `Show Flow (${items.length} items)`, mergedItems: items });
+  } else {
+    merged.push(current);
+  }
+
+  return [...other, ...merged];
 }
 
 export interface LayoutBlock {

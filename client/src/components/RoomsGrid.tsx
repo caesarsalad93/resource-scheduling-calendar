@@ -9,6 +9,7 @@ import {
   timeToMinutes,
   getColor,
   layoutEvents,
+  mergeShowFlowBlocks,
   panelToTimeBlock,
   eventToTimeBlock,
   type TimeBlock,
@@ -167,7 +168,7 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
 
           {/* Room columns */}
           {rooms.map((room) => {
-            const blocks = getBlocksForRoom(room.id);
+            const blocks = mergeShowFlowBlocks(getBlocksForRoom(room.id));
             const laid = layoutEvents(blocks);
             return (
               <div key={room.id} className="border-r relative">
@@ -180,7 +181,7 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                 {laid.map((item) => {
                   const color = getColor(item.block);
                   const duration = timeToMinutes(item.block.endTime) - timeToMinutes(item.block.startTime);
-                  const compact = duration <= 20;
+                  const compact = duration <= 20 && !item.block.mergedItems;
                   return (
                     <div
                       key={item.block.id}
@@ -195,7 +196,16 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                         '--print-event-color': color,
                       } as React.CSSProperties}
                     >
-                      {compact ? (
+                      {item.block.mergedItems ? (
+                        <div className="text-white print:text-black">
+                          {item.block.mergedItems.map((mi, idx) => (
+                            <div key={idx} className="truncate leading-tight">
+                              <span className="text-white/70 print:text-gray-500 text-[10px]">{formatTime(mi.startTime)} – {formatTime(mi.endTime)}</span>{" "}
+                              <span className="font-medium">{mi.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : compact ? (
                         <div className="font-medium text-white truncate print:text-black">
                           {item.block.title} · {formatTime(item.block.startTime)}–{formatTime(item.block.endTime)}
                         </div>
