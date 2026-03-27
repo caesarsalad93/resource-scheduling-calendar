@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Grid row height — overridden in @media print below */
+:root {
+  --grid-row-h: 5rem; /* 80px, same as h-20 */
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
@@ -403,6 +408,7 @@
   :root {
     --grid-col-min: 0px;
     --grid-time-col: 40px;
+    --grid-row-h: 3rem; /* compact print rows */
   }
 
   /* Ensure all content is visible */
@@ -423,11 +429,10 @@
     break-inside: avoid;
   }
 
-  /* Make event colors print-friendly: white bg with colored left border */
+  /* Print event blocks with full background color */
   .print-event {
-    background-color: white !important;
-    border: 1px solid #999 !important;
-    border-left: 4px solid var(--print-event-color, #333) !important;
+    background-color: var(--print-event-color, #6b7280) !important;
+    border: none !important;
     opacity: 1 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -435,7 +440,8 @@
   }
 
   .print-event * {
-    color: #000 !important;
+    color: #fff !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.4) !important;
   }
 
   /* Ensure borders are visible */
@@ -478,12 +484,14 @@
     padding: 1px !important;
   }
 
-  /* Compact event blocks */
+  /* Compact event blocks — height:auto lets blocks grow to fit text */
   .print-calendar-grid .print-event {
     padding: 1px 2px !important;
-    font-size: 6pt !important;
+    font-size: 5.5pt !important;
     line-height: 1.1 !important;
     border-radius: 1px !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   .print-calendar-grid .print-event .text-\[10px\] {

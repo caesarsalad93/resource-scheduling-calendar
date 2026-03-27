@@ -159,7 +159,7 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
             {hours.map((hour) => (
               <div
                 key={hour}
-                className="h-20 border-b p-1 text-xs text-muted-foreground sticky left-0 bg-background"
+                className="border-b p-1 text-xs text-muted-foreground sticky left-0 bg-background" style={{ height: 'var(--grid-row-h)' }}
               >
                 {format(addHours(startOfDay(new Date()), hour), "h a")}
               </div>
@@ -174,7 +174,7 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
               <div key={room.id} className="border-r relative">
                 {/* Hour grid lines */}
                 {hours.map((hour) => (
-                  <div key={hour} className="h-20 border-b" />
+                  <div key={hour} className="border-b" style={{ height: 'var(--grid-row-h)' }} />
                 ))}
 
                 {/* Event blocks */}
@@ -189,6 +189,7 @@ export function RoomsGrid({ rooms, allRooms, panels, events, currentDate }: Room
                       style={{
                         top: item.top,
                         height: item.height,
+                        minHeight: item.height,
                         left: item.left,
                         width: item.width,
                         backgroundColor: color,
