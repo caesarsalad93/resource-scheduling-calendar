@@ -131,7 +131,10 @@ export function CalendarGrid({ panels, rooms, events, volunteers, volunteerPanel
                         <div className="text-white print:text-black">
                           {item.block.mergedItems.map((mi, idx) => (
                             <div key={idx} className="truncate leading-tight">
-                              <span className="text-white/70 print:text-gray-500 text-[10px]">{formatTime(mi.startTime)} – {formatTime(mi.endTime)}</span>{" "}
+                              <span className="text-white/70 print:text-gray-500 text-[10px]">
+                                <span className="print:hidden">{formatTime(mi.startTime)} – {formatTime(mi.endTime)}</span>
+                                <span className="hidden print:inline">{formatTime(mi.startTime)}</span>
+                              </span>{" "}
                               <span className="font-medium">{mi.title}</span>
                             </div>
                           ))}

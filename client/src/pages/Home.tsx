@@ -94,6 +94,13 @@ export default function Home() {
     return Array.from(new Set(d)).sort();
   }, [rooms]);
 
+  // Build room district lookup
+  const roomDistrictMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const r of rooms) m.set(r.id, r.district ?? null);
+    return m;
+  }, [rooms]);
+
   // Filter panels to those with events or own schedule on the current date, sorted by earliest time
   const filteredPanels = useMemo(() => {
     const dayEvents = events.filter((e) => e.date === currentDate);
@@ -114,8 +121,13 @@ export default function Home() {
     }
     return panels
       .filter((p) => panelIdsWithEvents.has(p.id) || p.date === currentDate)
+      .filter((p) => {
+        if (!districtFilter) return true;
+        const district = p.roomId ? roomDistrictMap.get(p.roomId) : null;
+        return district === districtFilter;
+      })
       .sort((a, b) => (earliestByPanel.get(a.id) ?? Infinity) - (earliestByPanel.get(b.id) ?? Infinity));
-  }, [panels, events, currentDate]);
+  }, [panels, events, currentDate, districtFilter, roomDistrictMap]);
 
   // Filter rooms by district, sorted by earliest event or panel time
   const filteredRooms = useMemo(() => {
@@ -145,6 +157,7 @@ export default function Home() {
       <div className="hidden print:block print-header">
         <h1 className="text-2xl font-bold">
           {gridMode === "panels" ? "Panel Schedule" : "Room Schedule"}
+          {districtFilter && ` — ${districtFilter}`}
         </h1>
         <p className="text-sm text-gray-600">
           {currentDate ? format(new Date(currentDate + "T00:00:00"), "EEEE, MMMM d, yyyy") : ""}

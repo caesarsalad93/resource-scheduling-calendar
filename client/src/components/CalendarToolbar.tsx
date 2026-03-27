@@ -98,8 +98,8 @@ export function CalendarToolbar({
             </Button>
           </div>
 
-          {/* District filter (rooms mode only) */}
-          {gridMode === "rooms" && districts.length > 0 && (
+          {/* District filter */}
+          {districts.length > 0 && (
             <div className="flex items-center gap-1 border rounded-md p-1">
               <Button
                 variant={districtFilter === null ? "secondary" : "ghost"}
